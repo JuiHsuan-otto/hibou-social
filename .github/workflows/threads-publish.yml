@@ -1,0 +1,85 @@
+# Publishes approved @lovehibou Threads posts from social/queue.json through the
+# official Threads API. No browser is involved; the token exists only as the
+# HIBOU_THREADS_TOKEN repository secret.
+#
+# Schedule (GitHub cron is UTC and can run 5–30 minutes late, so every slot has
+# a catch-up run; the duplicate checks in publish.py make re-runs harmless):
+#   07:10 Taipei  check only (account, token age, quota, queue health)
+#   07:45 / 12:45 / 18:45 Taipei  catch-up for the morning / noon / evening posts
+#   21:32 Taipei  bedtime post;  22:05 Taipei  bedtime catch-up
+#
+# Kill switch: unless the repository variable THREADS_PUBLISH_ENABLED is "true",
+# every publish run is forced to dry-run (the one exception is a manual run of a
+# test entry that Otto approved).
+
+name: threads-publish
+
+on:
+  schedule:
+    - cron: "10 23 * * *"
+    - cron: "45 23 * * *"
+    - cron: "45 4 * * *"
+    - cron: "45 10 * * *"
+    - cron: "32 13 * * *"
+    - cron: "5 14 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "check (read-only) or publish"
+        type: choice
+        default: check
+        options: [check, publish]
+      dry_run:
+        description: "publish mode only: show what would be sent, send nothing"
+        type: boolean
+        default: true
+      entry_id:
+        description: "publish mode only: send just this queue entry"
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hibou-threads-publish
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: ${{ github.event_name == 'schedule' && (github.event.schedule == '10 23 * * *' && 'check (scheduled)' || 'publish (scheduled)') || inputs.mode }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run
+        env:
+          HIBOU_THREADS_TOKEN: ${{ secrets.HIBOU_THREADS_TOKEN }}
+          HIBOU_THREADS_USERNAME: ${{ vars.HIBOU_THREADS_USERNAME }}
+          HIBOU_THREADS_USER_ID: ${{ vars.HIBOU_THREADS_USER_ID }}
+          HIBOU_THREADS_TOKEN_ISSUED: ${{ vars.HIBOU_THREADS_TOKEN_ISSUED }}
+          THREADS_PUBLISH_ENABLED: ${{ vars.THREADS_PUBLISH_ENABLED }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          INPUT_ENTRY_ID: ${{ inputs.entry_id }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "schedule" ]; then
+            if [ "$EVENT_SCHEDULE" = "10 23 * * *" ]; then args=(check); else args=(publish); fi
+          else
+            args=("$INPUT_MODE")
+            if [ "$INPUT_MODE" = "publish" ]; then
+              if [ "$INPUT_DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+              if [ -n "$INPUT_ENTRY_ID" ]; then args+=(--entry-id "$INPUT_ENTRY_ID"); fi
+            fi
+          fi
+          python3 social/publish.py "${args[@]}"

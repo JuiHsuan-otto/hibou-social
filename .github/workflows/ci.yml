@@ -1,0 +1,40 @@
+# Pull-request checks. Nothing here talks to Threads or needs a secret.
+name: ci
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Unit tests
+        run: python3 -m unittest discover -s social/tests -v
+
+      - name: Validate queue
+        run: python3 social/validate.py social/queue.json
+
+      - name: No tokens in history
+        run: |
+          # The [..] brackets keep this line from matching itself.
+          if git log -p --all | grep -inE 'E[A]A[A-Za-z0-9]{20,}|T[H]Q[A-Za-z0-9]{20,}|access_token[=]'; then
+            echo "::error::something that looks like a token is in the git history"; exit 1
+          fi
+
+      - name: Secret scan (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
