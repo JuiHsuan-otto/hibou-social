@@ -50,6 +50,9 @@ QUOTA_STOP = 240           # Threads allows 250 API posts per rolling 24 hours
 DAILY_POST_CAP = 4         # 3 trend posts + 1 bedtime post per Taipei day; test posts excluded
 RECENT_LIMIT = 25          # recent posts read for the duplicate check and the daily cap
 POLL_EVERY, POLL_MAX, POLL_FALLBACK = 5, 60, 30
+# Video containers stay IN_PROGRESS longer than images. Threads troubleshooting
+# says to poll about once a minute, for no more than 5 minutes.
+VIDEO_POLL_EVERY, VIDEO_POLL_MAX = 10, 300
 WINDOWS = {
     'morning': timedelta(minutes=90),
     'noon': timedelta(minutes=90),
@@ -326,30 +329,36 @@ class Runner:
                     from_receipts += 1
         return max(from_api, from_receipts)
 
-    def wait_ready(self, container):
+    def wait_ready(self, container, media_type='TEXT'):
+        every = VIDEO_POLL_EVERY if media_type == 'VIDEO' else POLL_EVERY
+        limit = VIDEO_POLL_MAX if media_type == 'VIDEO' else POLL_MAX
         waited = 0
-        while waited < POLL_MAX:
-            self.sleep(POLL_EVERY)
-            waited += POLL_EVERY
+        while waited < limit:
+            self.sleep(every)
+            waited += every
             try:
                 status = self.call('GET', f'/{container}', {'fields': 'status,error_message'})
             except ApiError:
                 status = {}
             state = status.get('status')
             if state is None:
-                self.sleep(max(POLL_FALLBACK - waited, 0))
-                return
+                # Images sometimes omit status; a short wait is enough. A video with
+                # no status is still processing, so keep polling until the limit.
+                if media_type != 'VIDEO':
+                    self.sleep(max(POLL_FALLBACK - waited, 0))
+                    return
+                continue
             if state == 'FINISHED':
                 return
             if state in ('ERROR', 'EXPIRED'):
                 raise PostError(f'container {state}: {status.get("error_message", "")}')
-        raise PostError(f'container not FINISHED after {POLL_MAX}s')
+        raise PostError(f'container not FINISHED after {limit}s')
 
     def create(self, params):
         container = self.call('POST', f'/{self.user_id}/threads', params).get('id')
         if not container:
             raise PostError('Threads returned no container id')
-        self.wait_ready(container)
+        self.wait_ready(container, params.get('media_type'))
         media_id = self.call('POST', f'/{self.user_id}/threads_publish', {'creation_id': container}).get('id')
         if not media_id:
             raise PostError(f'Threads returned no media id for container {container}')
@@ -361,6 +370,9 @@ class Runner:
         if entry['media_type'] == 'IMAGE':
             status, ctype, size = self.head(entry['image_url'])
             self.say(f'圖片 HEAD：{status}，{ctype}，{size} bytes', None if status == 200 else 'warning')
+        if entry['media_type'] == 'VIDEO':
+            status, ctype, size = self.head(entry['video_url'])
+            self.say(f'影片 HEAD：{status}，{ctype}，{size} bytes', None if status == 200 else 'warning')
         if entry.get('self_reply'):
             self.say(f"發完會自己回覆「{entry['self_reply']['text'][:40]}」")
 
@@ -465,6 +477,10 @@ class Runner:
             params = {'media_type': entry['media_type'], 'text': entry['text']}
             if entry['media_type'] == 'IMAGE':
                 params['image_url'] = entry['image_url']
+            elif entry['media_type'] == 'VIDEO':
+                # Same two-step as IMAGE: container with a public URL, then threads_publish.
+                # https://developers.facebook.com/docs/threads/posts — media_type=VIDEO, video_url.
+                params['video_url'] = entry['video_url']
             if entry.get('link'):
                 params['link_attachment'] = entry['link']
             if entry.get('topic_tag'):

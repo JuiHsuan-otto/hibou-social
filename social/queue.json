@@ -218,5 +218,245 @@
     "status": "approved",
     "approved_by": "claude (CLAUDE_AUTHORIZATION §6)",
     "approved_at": "2026-10-24T17:47:16+08:00"
+  },
+  {
+    "id": "2026-11-06-evening-owl-ep03-s1",
+    "slot": "evening",
+    "publish_at": "2026-11-06T20:00:00+08:00",
+    "media_type": "VIDEO",
+    "text": "送彌月禮，第一句該問什麼？\n先問：「家裡還缺什麼？」比急著猜花色更貼心。\n若有穿著品項，再確認身高與尺寸；如果要繡名字，也先把寫法問清楚。\n你想送實用派，還是紀念派？",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": "https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/social/videos/2026/owl_shorts/ep03_s1.mp4",
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/guides/baby-gift-budget-timing?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-07-noon-owl-ep03-s2",
+    "slot": "noon",
+    "publish_at": "2026-11-07T12:00:00+08:00",
+    "media_type": "VIDEO",
+    "text": "一句「辛苦了」，也是很棒的彌月祝福。\n新成員來了，爸媽也多了一個全新的身分。\n禮物不必只圍著寶寶，也可以放進對這段日子的看見。\n蘋安彌月禮盒，陪你把心意寫進祝福卡。",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": "https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/social/videos/2026/owl_shorts/ep03_s2.mp4",
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/products/hibou-giftbox?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-08-evening-owl-ep03-s3",
+    "slot": "evening",
+    "publish_at": "2026-11-08T20:00:00+08:00",
+    "media_type": "VIDEO",
+    "text": "禮盒打開的那一刻，祝福也有了模樣。\n有人看花色，有人研究紗布巾，有人急著唸卡片。\n最珍貴的，往往是一家人圍在一起的那幾分鐘。\n你收過最難忘的彌月祝福是什麼？",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": "https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/social/videos/2026/owl_shorts/ep03_s3.mp4",
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/guides/baby-gift-budget-timing?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-09-noon-owl-text-11",
+    "slot": "noon",
+    "publish_at": "2026-11-09T12:00:00+08:00",
+    "media_type": "TEXT",
+    "text": "圍兜怎麼配？先看今天要吃什麼、去哪裡。\n吃奶、副食品、出門換洗，需要的數量和用法不一樣。\n先從家裡的節奏挑，再跟紗布巾分工，不必為了湊一套買齊所有款式。\n送禮也可以先問爸媽：最常缺的是哪一種？",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": null,
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/products/hibou-giftbox?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-10-morning-owl-ep02-s1",
+    "slot": "morning",
+    "publish_at": "2026-11-10T07:30:00+08:00",
+    "media_type": "VIDEO",
+    "text": "寒流來了，出門前多做一個小檢查。\n先固定，再整理下擺，最後看看寶寶的臉。\n防風罩不能取代推車安全帶，也不能遮住口鼻；下擺還要避開輪子與關節。\n你家出門前，一定會檢查哪一件事？",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": "https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/social/videos/2026/owl_shorts/ep02_s1.mp4",
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/articles/parenting-windshield-usage?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-10-evening-owl-text-10",
+    "slot": "evening",
+    "publish_at": "2026-11-10T20:00:00+08:00",
+    "media_type": "TEXT",
+    "text": "防風罩的三種固定，先分清楚再用。\n推車：用白夾扣或彈性束帶，固定在合適的位置。\n揹巾：沿肩帶扣住上緣，揹巾本身照樣承托。\n下擺：按釦扣成兩個褲管，再確認腿腳能活動，布料遠離輪子與關節；無論哪一種，都露出臉和口鼻，也不取代原有安全帶。",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": null,
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/articles/parenting-windshield-usage?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-11-noon-owl-ep02-s2",
+    "slot": "noon",
+    "publish_at": "2026-11-11T12:00:00+08:00",
+    "media_type": "VIDEO",
+    "text": "風大的日子，也想帶你慢慢走。\n不必趕路，也不用把小被子一路追著跑。\n依推車或揹巾說明固定好，沿途記得留意寶寶的臉、體溫與通風。\n寶寶我最罩，把照顧藏在每一個小細節裡。",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": "https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/social/videos/2026/owl_shorts/ep02_s2.mp4",
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/products/hibou-windshield?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-12-evening-owl-ep02-s3",
+    "slot": "evening",
+    "publish_at": "2026-11-12T20:00:00+08:00",
+    "media_type": "VIDEO",
+    "text": "從出門到回家，唸的都是同一句。\n有沒有冷？會不會熱？臉有沒有露出來？\n原來所謂安心，不是不多想，而是每一次都知道要看哪裡。\n把這份出門檢查存起來，下次一起用。",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": "https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/social/videos/2026/owl_shorts/ep02_s3.mp4",
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/articles/parenting-windshield-usage?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-13-noon-owl-text-12",
+    "slot": "noon",
+    "publish_at": "2026-11-13T12:00:00+08:00",
+    "media_type": "TEXT",
+    "text": "六重紗，不是越厚越好。\n要看季節、室溫、使用方式，也要看孩子會不會出汗。\n「六重」是布料結構，不是保暖指標；留意孩子的狀態，比單看層數更重要。\n先選用得到的，再選喜歡的花色。",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": null,
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/products/hibou-giftbox?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-14-noon-owl-ep01-s1",
+    "slot": "noon",
+    "publish_at": "2026-11-14T12:00:00+08:00",
+    "media_type": "VIDEO",
+    "text": "風一吹，小被子又想溜走。\n一手推車、一手撿被子，還要留意寶寶會不會著涼。\n原來出門需要的，不只是多帶一條被子，而是少一點手忙腳亂。\n你也有過一路追著小被子的時刻嗎？",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": "https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/social/videos/2026/owl_shorts/ep01_s1.mp4",
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/articles/parenting-windshield-usage?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-15-evening-owl-ep01-s2",
+    "slot": "evening",
+    "publish_at": "2026-11-15T20:00:00+08:00",
+    "media_type": "VIDEO",
+    "text": "帶寶寶出門，天氣總有自己的想法。\n早上有風，午後也許又暖了起來；進到室內，還要再看看這一層需不需要。\n需要時再加上，覺得熱了就打開或取下，臉和口鼻隨時露出來。\n你今天也幫寶寶調整了幾次衣服？",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": "https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/social/videos/2026/owl_shorts/ep01_s2.mp4",
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/products/hibou-windshield?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
+  },
+  {
+    "id": "2026-11-16-bedtime-owl-ep01-s3",
+    "slot": "bedtime",
+    "publish_at": "2026-11-16T21:30:00+08:00",
+    "media_type": "VIDEO",
+    "text": "當爸媽後，晚安變得很具體。\n是再看一次小手有沒有放好，是確認房間不會太熱。\n也是終於坐下時，還想偷看一眼那張睡著的臉。\n今天也辛苦了，願你們都有一個甜甜的晚安。",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": "https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/social/videos/2026/owl_shorts/ep01_s3.mp4",
+    "link": null,
+    "topic_tag": "小鷹短影音導流",
+    "self_reply": {
+      "text": "延伸看：https://www.ihibou.com/articles/parenting-windshield-usage?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611"
+    },
+    "pin_after_post": false,
+    "source": "owl_shorts_batch1_20261105",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-05T18:00:00+08:00"
   }
 ]

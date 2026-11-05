@@ -39,9 +39,10 @@
 | `slot` | `morning`（07:30）、`noon`（12:30）、`evening`（18:30）、`bedtime`（21:30）、`test` |
 | `publish_at` | 預定時間，一定要寫 `+08:00` |
 | `status` | `draft` → `approved` → `publishing` → `published`；或 `failed`、`skipped`；Chrome 時期發過的是 `posted_by_chrome` |
-| `media_type` | `IMAGE` 或 `TEXT` |
+| `media_type` | `TEXT`、`IMAGE` 或 `VIDEO` |
 | `text` | 貼文內容 |
 | `image_url`、`image_sha256` | 圖片放在本 repo 的 `social/images/`，網址和檔案指紋要對得上 |
+| `video_url` | 影片網址。必須是本 repo `main` 上 `social/videos/` 的 raw 連結，且以 `.mp4` 結尾。跟圖片一樣指到 `main`，所以分支合併前 Threads 抓不到檔。不填 sha256 |
 | `topic_tag` | 主題，例如「育兒日常」「帶娃出門崩潰日記」 |
 | `self_reply` | 發完後自己回覆的導流文字，例如 `{"text": "延伸看：https://www.ihibou.com/..."}`；不需要就填 `null` |
 | `pin_after_post` | 要釘選就填 `true`。API 不能釘選，發完會標 `needs_pin`，要人工去釘 |
@@ -73,6 +74,7 @@
   - 連結最多 5 個，只能連到 `www.ihibou.com`。
   - 不出現禁用詞，例如 UPF、抗菌、防蟎、低敏、日本、保證、AI 製作等。
   - 圖片是 JPEG 或 PNG、小於 8 MB、寬 320 到 1440 px。
+  - 影片：`publish.py` 用 `media_type=VIDEO` 加公開的 `video_url` 建容器（跟圖片的 `image_url` 同一套），等容器 `FINISHED` 再發，發完一樣可以自己回覆。Threads 官方上限是 MP4/MOV、1 GB、長度大於 0 秒且最長 5 分鐘、寬最多 1920、長寬比 0.01:1 到 10:1（建議 9:16）、H.264 或 HEVC、AAC、moov 要在檔案前面。本機驗證只擋：網址不在 `social/videos/`、不是 `.mp4`、超過 1 GB、檔頭不是 MP4、或 `mdat` 排在 `moov` 前面。編碼、影格率、秒數不在這裡解析。檔案還沒推進 repo 時，只檢查網址，不會造一個假的 checksum。影片容器最多輪詢 5 分鐘。
 
 只要有一筆不合格，整批都不發。
 

@@ -21,11 +21,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RAW_BASE = 'https://raw.githubusercontent.com/JuiHsuan-otto/hibou-social/main/'
 IMAGE_PREFIX = RAW_BASE + 'social/images/'
+VIDEO_PREFIX = RAW_BASE + 'social/videos/'
 SITE_HOST = 'www.ihibou.com'
 
 SLOTS = ('morning', 'noon', 'evening', 'bedtime', 'test')
 STATUSES = ('draft', 'approved', 'publishing', 'published', 'failed', 'skipped', 'posted_by_chrome')
-MEDIA_TYPES = ('TEXT', 'IMAGE')
+MEDIA_TYPES = ('TEXT', 'IMAGE', 'VIDEO')
 # Entries still waiting to go out get the full content check; finished ones only the structural one.
 CONTENT_CHECKED = ('draft', 'approved')
 REQUIRED = ('id', 'slot', 'publish_at', 'status', 'media_type', 'text')
@@ -35,6 +36,13 @@ LINK_LIMIT = 5
 IMAGE_MAX_BYTES = 8 * 1024 * 1024
 IMAGE_MIN_WIDTH, IMAGE_MAX_WIDTH = 320, 1440
 IMAGE_MAX_RATIO = 10
+# Threads video limits (developers.facebook.com/docs/threads/overview, "Video Specifications"):
+# MP4 or MOV, moov atom at the front, no edit lists; H.264 or HEVC; AAC, 1–2 channels, ≤48 kHz;
+# 23–60 FPS; width ≤1920; aspect ratio 0.01:1–10:1 (9:16 recommended); video bitrate ≤100 Mbps;
+# audio bitrate 128 kbps; duration >0 and ≤300 s; file size ≤1 GB.
+# Local checks cover the URL, the .mp4 suffix, size, the ftyp box, and mdat-before-moov.
+# Codec, frame rate, and duration are not parsed here, and videos have no checksum field.
+VIDEO_MAX_BYTES = 1024 * 1024 * 1024
 
 # Wording that must never go out. Sources:
 # - handoff spec hibou-threads-api-spec-20261024.md §6 rule 4
@@ -62,6 +70,9 @@ SELF_REPLY_PATHS = (
     '/articles/parenting-rainy-laundry',
     '/articles/parenting-6gauze-guide',
     '/products/hibou-carrier',
+    '/guides/baby-gift-budget-timing',
+    '/guides/stroller-winter-warmth',
+    '/products/hibou-giftbox',
 )
 
 URL_RE = re.compile(r'https?://[^\s<>"\'（）「」，。、！？]+')
@@ -147,6 +158,69 @@ def check_text(label, text, problems):
     return urls
 
 
+def video_file_problem(data):
+    """Return a problem for MP4 bytes, or None when the local checks pass."""
+    if not data:
+        return 'video file is empty'
+    if len(data) > VIDEO_MAX_BYTES:
+        return f'video is {len(data)} bytes (limit 1 GB)'
+    if len(data) < 12 or data[4:8] != b'ftyp':
+        return 'video is not an MP4 (expected an ftyp box at the start)'
+    box_size = struct.unpack('>I', data[:4])[0]
+    if box_size == 1:
+        if len(data) < 16:
+            return 'video MP4 header is truncated'
+        box_size = struct.unpack('>Q', data[8:16])[0]
+    if box_size < 12 or box_size > len(data):
+        return 'video MP4 ftyp box is truncated'
+    order = []
+    i, n = 0, len(data)
+    while i + 8 <= n and len(order) < 64:
+        size = struct.unpack('>I', data[i:i + 4])[0]
+        kind = data[i + 4:i + 8]
+        header = 8
+        if size == 1:
+            if i + 16 > n:
+                break
+            size = struct.unpack('>Q', data[i + 8:i + 16])[0]
+            header = 16
+        elif size == 0:
+            size = n - i
+        if size < header:
+            break
+        order.append(kind)
+        if i + size > n:
+            break
+        i += size
+    if b'mdat' in order and b'moov' in order and order.index(b'mdat') < order.index(b'moov'):
+        return 'video has mdat before moov (Threads requires the moov atom at the front of the file)'
+    return None
+
+
+def check_video(entry, root, problems):
+    url = entry.get('video_url')
+    if not isinstance(url, str) or not url.startswith(VIDEO_PREFIX):
+        problems.append(f'video_url must start with {VIDEO_PREFIX}')
+        return
+    rel = url[len(RAW_BASE):]
+    parts = rel.split('/')
+    if not rel.endswith('.mp4') or '..' in parts or '?' in url or '#' in url:
+        problems.append('video_url must be an .mp4 file under social/videos/ with no query string')
+        return
+    path = root / rel
+    # Binaries may arrive in a later commit. Until the file is in the tree,
+    # the raw-URL shape is the whole check — do not invent a checksum.
+    if not path.is_file():
+        return
+    size = path.stat().st_size
+    if size > VIDEO_MAX_BYTES:
+        problems.append(f'video is {size} bytes (limit 1 GB)')
+        return
+    problem = video_file_problem(path.read_bytes())
+    if problem:
+        problems.append(problem)
+
+
 def check_image(entry, root, problems):
     url = entry.get('image_url')
     if not isinstance(url, str) or not url.startswith(IMAGE_PREFIX):
@@ -194,13 +268,18 @@ def validate_entry(entry, root=REPO_ROOT):
         problems.append(f'slot {entry.get("slot")!r} is not one of {", ".join(SLOTS)}')
     media_type = entry.get('media_type')
     if media_type not in MEDIA_TYPES:
-        problems.append(f'media_type {media_type!r} is not TEXT or IMAGE')
+        problems.append(f'media_type {media_type!r} is not one of {", ".join(MEDIA_TYPES)}')
     check_text('text', entry.get('text'), problems)
 
     if media_type == 'IMAGE':
         check_image(entry, root, problems)
     elif entry.get('image_url'):
         problems.append('image_url is set but media_type is not IMAGE')
+
+    if media_type == 'VIDEO':
+        check_video(entry, root, problems)
+    elif entry.get('video_url'):
+        problems.append('video_url is set but media_type is not VIDEO')
 
     link = entry.get('link')
     if link:

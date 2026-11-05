@@ -42,6 +42,14 @@ def jpeg_bytes(width, height):
     return b'\xff\xd8' + b'\xff\xe0' + struct.pack('>H', 16) + b'JFIF\x00' + b'\x00' * 9 + sof + b'\xff\xd9'
 
 
+def mp4_box(kind, payload=b''):
+    return struct.pack('>I', 8 + len(payload)) + kind + payload
+
+
+def mp4_bytes():
+    return mp4_box(b'ftyp', b'isom' + b'\x00\x00\x02\x00' + b'isommp41')
+
+
 class FakeThreads:
     """Records every call; answers like the Threads API."""
 
@@ -287,6 +295,55 @@ class PublishTests(Base):
         self.run_publish(FakeThreads())
         self.assertTrue(self.queue()[0]['needs_pin'])
 
+    def test_publishes_video_container_then_self_reply(self):
+        url = V.VIDEO_PREFIX + '2026/owl_shorts/ep03_s1.mp4'
+        reply = ('延伸看：https://www.ihibou.com/guides/baby-gift-budget-timing'
+                 '?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611')
+        self.write_queue([self.entry(
+            id='2026-11-06-evening-owl-ep03-s1', slot='evening',
+            publish_at='2026-11-06T20:00:00+08:00', media_type='VIDEO',
+            text='風一吹，小被子又想溜走。', image_url=None, image_sha256=None, video_url=url,
+            self_reply={'text': reply}, topic_tag='小鷹短影音導流',
+            approved_by='otto', approved_at='2026-11-05T18:00:00+08:00',
+        )])
+        sleeps = []
+        api = FakeThreads()
+        when = datetime(2026, 11, 6, 20, 10, tzinfo=TAIPEI)
+        code = P.main(['publish'], root=self.root, env=dict(ENV), api=api, clock=lambda: when,
+                      sleep=lambda s: sleeps.append(s), head=lambda u: (200, 'video/mp4', '10'), commit=False)
+        self.assertEqual(code, 0)
+        create, publish, reply_create, reply_publish = api.posts
+        self.assertEqual(create[2]['media_type'], 'VIDEO')
+        self.assertEqual(create[2]['video_url'], url)
+        self.assertNotIn('image_url', create[2])
+        self.assertEqual(publish[2], {'creation_id': 'container1'})
+        self.assertEqual(reply_create[2]['media_type'], 'TEXT')
+        self.assertEqual(reply_create[2]['reply_to_id'], 'media-container1')
+        self.assertEqual(reply_create[2]['text'], reply)
+        self.assertEqual(reply_publish[2], {'creation_id': 'container2'})
+        self.assertEqual(sleeps, [P.VIDEO_POLL_EVERY, P.POLL_EVERY])
+        entry = self.queue()[0]
+        self.assertEqual(entry['status'], 'published')
+        self.assertEqual(entry['reply_id'], 'media-container2')
+
+    def test_dry_run_heads_the_video_url(self):
+        url = V.VIDEO_PREFIX + '2026/owl_shorts/ep03_s1.mp4'
+        self.write_queue([self.entry(
+            id='2026-11-06-evening-owl-ep03-s1', slot='evening',
+            publish_at='2026-11-06T20:00:00+08:00', media_type='VIDEO',
+            text='風一吹，小被子又想溜走。', image_url=None, image_sha256=None, video_url=url,
+            approved_by='otto',
+        )])
+        seen = []
+        api = FakeThreads()
+        when = datetime(2026, 11, 6, 20, 10, tzinfo=TAIPEI)
+        code = P.main(['publish', '--dry-run'], root=self.root, env=dict(ENV), api=api, clock=lambda: when,
+                      sleep=lambda s: None, head=lambda u: seen.append(u) or (200, 'video/mp4', '10'), commit=False)
+        self.assertEqual(code, 0)
+        self.assertEqual(api.posts, [])
+        self.assertEqual(seen, [url])
+        self.assertEqual(self.queue()[0]['status'], 'approved')
+
 
 class SafetyTests(Base):
     def test_dry_run_sends_and_writes_nothing(self):
@@ -405,6 +462,43 @@ class ValidateTests(Base):
 
     def test_finished_entries_only_get_structural_checks(self):
         self.assertEqual(self.problems(status='posted_by_chrome', text='舊貼文 😂', image_url=None), [])
+
+    def test_video_url_rules(self):
+        good_url = V.VIDEO_PREFIX + '2026/owl_shorts/ep01_s1.mp4'
+        fields = dict(media_type='VIDEO', image_url=None, image_sha256=None, link=None)
+        self.assertEqual(self.problems(**fields, video_url=good_url), [])
+        self.assertTrue(self.problems(**fields, video_url='https://example.com/a.mp4'))
+        self.assertTrue(any('mp4' in p for p in self.problems(**fields, video_url=V.VIDEO_PREFIX + '2026/clip.mov')))
+        self.assertTrue(any('query' in p for p in self.problems(**fields, video_url=good_url + '?dl=1')))
+        self.assertTrue(self.problems(media_type='TEXT', image_url=None, image_sha256=None, video_url=good_url))
+
+    def test_video_file_checks_when_present(self):
+        folder = self.root / 'social/videos/2026/owl_shorts'
+        folder.mkdir(parents=True)
+        fields = dict(media_type='VIDEO', image_url=None, image_sha256=None, link=None)
+        (folder / 'bad.mp4').write_bytes(b'not-an-mp4!!')
+        bad = self.problems(**fields, video_url=V.VIDEO_PREFIX + '2026/owl_shorts/bad.mp4')
+        self.assertTrue(any('MP4' in p for p in bad))
+        (folder / 'ok.mp4').write_bytes(mp4_bytes())
+        self.assertEqual(self.problems(**fields, video_url=V.VIDEO_PREFIX + '2026/owl_shorts/ok.mp4'), [])
+        slow = (mp4_box(b'ftyp', b'isom' + b'\x00\x00\x02\x00')
+                + mp4_box(b'mdat', b'\x00' * 4) + mp4_box(b'moov', b''))
+        (folder / 'slow.mp4').write_bytes(slow)
+        self.assertTrue(any('moov' in p for p in self.problems(
+            **fields, video_url=V.VIDEO_PREFIX + '2026/owl_shorts/slow.mp4')))
+        old = V.VIDEO_MAX_BYTES
+        V.VIDEO_MAX_BYTES = 8
+        try:
+            sized = self.problems(**fields, video_url=V.VIDEO_PREFIX + '2026/owl_shorts/ok.mp4')
+        finally:
+            V.VIDEO_MAX_BYTES = old
+        self.assertTrue(any('1 GB' in p for p in sized))
+
+    def test_new_self_reply_paths_allow_utm(self):
+        utm = '?utm_source=threads&utm_medium=organic_social&utm_campaign=owl_shorts_202611'
+        for path in ('/guides/baby-gift-budget-timing', '/guides/stroller-winter-warmth', '/products/hibou-giftbox'):
+            text = '延伸看：https://www.ihibou.com' + path + utm
+            self.assertEqual(self.problems(self_reply={'text': text}), [], path)
 
 
 if __name__ == '__main__':
