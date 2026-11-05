@@ -5,7 +5,10 @@
 # Schedule (GitHub cron is UTC and can run 5–30 minutes late, so every slot has
 # a catch-up run; the duplicate checks in publish.py make re-runs harmless):
 #   07:10 Taipei  check only (account, token age, quota, queue health)
-#   07:45 / 12:45 / 18:45 Taipei  catch-up for the morning / noon / evening posts
+#   07:45 / 12:45 / 18:45 Taipei  catch-up for the morning / noon / 18:30 evening posts
+#   20:10 Taipei  publish for 20:00 evening posts (90-minute window closes 21:30;
+#                 the 21:32 bedtime run is already past that window)
+#   20:40 Taipei  catch-up if 20:10 was delayed or dropped (20:40 + 30 min is 21:10)
 #   21:32 Taipei  bedtime post;  22:05 Taipei  bedtime catch-up
 #
 # Kill switch: unless the repository variable THREADS_PUBLISH_ENABLED is "true",
@@ -20,6 +23,8 @@ on:
     - cron: "45 23 * * *"
     - cron: "45 4 * * *"
     - cron: "45 10 * * *"
+    - cron: "10 12 * * *"
+    - cron: "40 12 * * *"
     - cron: "32 13 * * *"
     - cron: "5 14 * * *"
   workflow_dispatch:
