@@ -211,9 +211,11 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "schedule.json#2026-10-29",
-    "status": "approved",
+    "status": "skipped",
     "approved_by": "claude (CLAUDE_AUTHORIZATION §6)",
-    "approved_at": "2026-10-24T17:47:16+08:00"
+    "approved_at": "2026-10-24T17:47:16+08:00",
+    "note": "missed window",
+    "run_id": "42029732074"
   },
   {
     "id": "2026-10-30-bedtime",
