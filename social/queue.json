@@ -132,9 +132,14 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "schedule.json#2026-10-25",
-    "status": "approved",
+    "status": "published",
     "approved_by": "claude (CLAUDE_AUTHORIZATION §6)",
-    "approved_at": "2026-10-24T17:47:16+08:00"
+    "approved_at": "2026-10-24T17:47:16+08:00",
+    "published_id": "17882132640545881",
+    "permalink": "https://www.threads.com/@lovehibou/post/DfSBEUVmNY1",
+    "published_at": "2026-11-03T13:44:08+0000",
+    "run_id": "42029732074",
+    "note": "found existing: 帳號上已有同樣第一行的貼文，不重發"
   },
   {
     "id": "2026-10-26-bedtime",
