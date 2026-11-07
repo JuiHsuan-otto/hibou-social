@@ -282,9 +282,11 @@
     },
     "pin_after_post": false,
     "source": "owl_shorts_batch1_20261105",
-    "status": "approved",
+    "status": "skipped",
     "approved_by": "otto",
-    "approved_at": "2026-11-05T18:00:00+08:00"
+    "approved_at": "2026-11-05T18:00:00+08:00",
+    "note": "missed window",
+    "run_id": "42392302455"
   },
   {
     "id": "2026-11-08-evening-owl-ep03-s3",
