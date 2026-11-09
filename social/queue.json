@@ -326,9 +326,11 @@
     },
     "pin_after_post": false,
     "source": "owl_shorts_batch1_20261105",
-    "status": "approved",
+    "status": "skipped",
     "approved_by": "otto",
-    "approved_at": "2026-11-05T18:00:00+08:00"
+    "approved_at": "2026-11-05T18:00:00+08:00",
+    "note": "missed window",
+    "run_id": "42624979521"
   },
   {
     "id": "2026-11-10-morning-owl-ep02-s1",
