@@ -370,9 +370,10 @@
     },
     "pin_after_post": false,
     "source": "owl_shorts_batch1_20261105",
-    "status": "approved",
+    "status": "publishing",
     "approved_by": "otto",
-    "approved_at": "2026-11-05T18:00:00+08:00"
+    "approved_at": "2026-11-05T18:00:00+08:00",
+    "run_id": "42820460529"
   },
   {
     "id": "2026-11-11-noon-owl-ep02-s2",
