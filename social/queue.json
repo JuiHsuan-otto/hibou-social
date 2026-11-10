@@ -370,10 +370,15 @@
     },
     "pin_after_post": false,
     "source": "owl_shorts_batch1_20261105",
-    "status": "publishing",
+    "status": "published",
     "approved_by": "otto",
     "approved_at": "2026-11-05T18:00:00+08:00",
-    "run_id": "42820460529"
+    "run_id": "42820460529",
+    "container_id": "17966102859228916",
+    "published_id": "18083115968422426",
+    "permalink": "https://www.threads.com/@lovehibou/post/Dfj9n8NEfO5",
+    "published_at": "2026-11-10T20:59:59+08:00",
+    "error": null
   },
   {
     "id": "2026-11-11-noon-owl-ep02-s2",
