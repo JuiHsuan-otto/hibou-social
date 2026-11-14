@@ -1655,7 +1655,7 @@
     "slot": "evening",
     "publish_at": "2027-01-18T20:00:00+08:00",
     "media_type": "TEXT",
-    "text": "新聞寫的和現在能請的，常常不是同一件事。\n依現行性別平等工作法：分娩產假 8 星期；產檢假 7 日、薪資照給；陪產檢及陪產假 7 日、薪資照給。陪產檢在配偶懷孕期間請，陪產要在配偶分娩當日及前後合計 15 日內請完。\n常看到的「產假 12 週」「陪產假 14 日」，查核時還是立法院的草案，沒三讀通過、沒公告施行前，照現行規定走。\n產假薪資依相關法令計算，適用勞基法另有年資條件，不確定就問公司人資，並以主管機關公告為準。\nhttps://www.ihibou.com/guides/maternity-paternity-leave?utm_source=threads&utm_medium=organic_social&utm_campaign=threads_winter_20261221",
+    "text": "產假能請多久、另一半能請幾天，先把新的天數對一下。\n分娩產假 14 週；產檢假仍是 7 日，沒請完的，可在產假後的工作日接著請；陪產檢及陪產假 14 日。產假第 9 到 14 週，可依意願申請提前銷假。育兒留職停薪可申請到子女滿 9 歲前。還多了一種育兒假，每人每年最多 60 日，可以按日申請。\n新制上路日期以行政院公告為準，請假前跟公司人資確認。\nhttps://www.ihibou.com/guides/maternity-paternity-leave?utm_source=threads&utm_medium=organic_social&utm_campaign=threads_winter_20261221",
     "image_url": null,
     "image_sha256": null,
     "video_url": null,
@@ -1666,7 +1666,9 @@
     "source": "threads_drafts_20261221_20270131",
     "status": "approved",
     "approved_by": "otto",
-    "approved_at": "2026-11-14T18:12:00+08:00"
+    "approved_at": "2026-11-14T18:12:00+08:00",
+    "revised_at": "2026-11-14T22:09:00+08:00",
+    "note": "2026-11-14 依勞動部與聯合報，改寫為 11/13 三讀新制（產假 14 週、陪產檢及陪產假 14 日）；上路日期以行政院公告為準。otto 於 2026-11-14T22:09+08:00 核准後直接排回原時間。"
   },
   {
     "id": "2027-01-19-noon-prenatal",
