@@ -794,7 +794,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-01-evening-embroidery",
@@ -810,7 +812,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-02-noon-hanky",
@@ -826,7 +830,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-03-evening-library-card",
@@ -842,7 +848,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-04-noon-peace-bag",
@@ -858,7 +866,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-05-evening-corporate-gifts",
@@ -874,7 +884,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-06-noon-swaddle-stop",
@@ -890,7 +902,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-07-evening-belly",
@@ -906,7 +920,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-08-noon-daycare",
@@ -922,7 +938,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-09-evening-flashcards",
@@ -938,7 +956,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-10-noon-hooks",
@@ -954,7 +974,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-12-evening-carrier-wind",
@@ -972,7 +994,9 @@
     },
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-13-noon-parental-leave",
@@ -988,7 +1012,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-14-evening-romper-box",
@@ -1004,7 +1030,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-15-noon-holiday-trip",
@@ -1020,7 +1048,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-16-evening-custom",
@@ -1038,7 +1068,9 @@
     },
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-17-noon-sweat-towel",
@@ -1054,7 +1086,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-18-evening-return-bags",
@@ -1070,7 +1104,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-19-noon-registration",
@@ -1086,7 +1122,9 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   },
   {
     "id": "2026-12-20-evening-winter-recap",
@@ -1104,6 +1142,8 @@
     },
     "pin_after_post": false,
     "source": "threads_drafts_20261130_1220",
-    "status": "draft"
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-14T18:12:00+08:00"
   }
 ]
