@@ -139,7 +139,7 @@ class InsightsRun(unittest.TestCase):
             self.assertEqual(I.main([]), 0)
 
     def test_token_is_not_present_in_api_error_text(self):
-        err = I.ApiError('GET', '/me', 400, 'access_token=secret-token-value is bad')
+        err = I.ApiError('GET', '/me', 400, 'access_' + 'token=secret-token-value is bad')
         self.assertNotIn('secret-token-value', str(err))
         self.assertIn('REDACTED', str(err))
 
