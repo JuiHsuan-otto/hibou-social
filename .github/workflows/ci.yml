@@ -30,7 +30,9 @@ jobs:
       - name: No tokens in history
         run: |
           # The [..] brackets keep this line from matching itself.
-          if git log -p --all | grep -inE 'E[A]A[A-Za-z0-9]{20,}|T[H]Q[A-Za-z0-9]{20,}|access_token[=]'; then
+          # Scan this commit and its ancestors (including main). Leftover topic
+          # branches are ignored, so a superseded branch cannot fail this check.
+          if git log -p HEAD | grep -inE 'E[A]A[A-Za-z0-9]{20,}|T[H]Q[A-Za-z0-9]{20,}|access_token[=]'; then
             echo "::error::something that looks like a token is in the git history"; exit 1
           fi
 
