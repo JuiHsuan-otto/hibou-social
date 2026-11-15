@@ -1,0 +1,48 @@
+# Read-only daily pull of Threads insights for published @lovehibou posts.
+# Never publishes or changes social/queue.json. The token exists only as the
+# HIBOU_THREADS_TOKEN repository secret and is masked before use.
+#
+# Schedule: 06:37 Asia/Taipei (22:37 UTC), offset from :00/:30.
+# A missing threads_manage_insights scope exits cleanly and writes nothing.
+
+name: threads-insights
+
+on:
+  schedule:
+    - cron: "37 22 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hibou-threads-insights
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: pull insights
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Mask token
+        env:
+          HIBOU_THREADS_TOKEN: ${{ secrets.HIBOU_THREADS_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${HIBOU_THREADS_TOKEN}" ]; then
+            echo "::add-mask::${HIBOU_THREADS_TOKEN}"
+          fi
+
+      - name: Pull insights
+        env:
+          HIBOU_THREADS_TOKEN: ${{ secrets.HIBOU_THREADS_TOKEN }}
+        run: python3 social/insights.py
