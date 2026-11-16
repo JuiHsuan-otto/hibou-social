@@ -517,10 +517,15 @@
     },
     "pin_after_post": false,
     "source": "owl_shorts_batch1_20261105",
-    "status": "publishing",
+    "status": "published",
     "approved_by": "otto",
     "approved_at": "2026-11-05T18:00:00+08:00",
-    "run_id": "43873054636"
+    "run_id": "43873054636",
+    "container_id": "17967087471228916",
+    "published_id": "17966356824239604",
+    "permalink": "https://www.threads.com/@lovehibou/post/DfzbgOfyKWv",
+    "published_at": "2026-11-16T21:10:06+08:00",
+    "error": null
   },
   {
     "id": "2026-11-16-noon-gift-shipping",
