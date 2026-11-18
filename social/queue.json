@@ -584,10 +584,15 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261116_1129",
-    "status": "publishing",
+    "status": "published",
     "approved_by": "otto",
     "approved_at": "2026-11-13T22:34:00+08:00",
-    "run_id": "44239197367"
+    "run_id": "44239197367",
+    "container_id": "17967335583228916",
+    "published_id": "18133201438879237",
+    "permalink": "https://www.threads.com/@lovehibou/post/Df3rIDyFX9e",
+    "published_at": "2026-11-18T12:43:19+08:00",
+    "error": null
   },
   {
     "id": "2026-11-19-evening-swaddle-towel",
