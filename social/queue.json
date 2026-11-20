@@ -630,10 +630,15 @@
     },
     "pin_after_post": false,
     "source": "threads_drafts_20261116_1129",
-    "status": "publishing",
+    "status": "published",
     "approved_by": "otto",
     "approved_at": "2026-11-13T22:34:00+08:00",
-    "run_id": "44673458202"
+    "run_id": "44673458202",
+    "container_id": "17967583188228916",
+    "published_id": "18133019101827532",
+    "permalink": "https://www.threads.com/@lovehibou/post/Df8x3RKnALR",
+    "published_at": "2026-11-20T12:18:15+08:00",
+    "error": null
   },
   {
     "id": "2026-11-21-evening-owl-ep03-s2",
