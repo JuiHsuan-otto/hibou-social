@@ -1,12 +1,17 @@
 """Publish approved HiBOU Threads posts through the official Threads API.
 
+Facebook Page link posts and Instagram photos in the same queue use the Meta
+Graph API. They stay a dry-run unless FB_PUBLISH_ENABLED or IG_PUBLISH_ENABLED
+is true and the run is on main. A missing page token or Instagram id skips
+that platform and does not change Threads.
+
     python3 social/publish.py check                          # read-only health check
     python3 social/publish.py publish                        # send what is due
     python3 social/publish.py publish --dry-run              # show what would be sent
     python3 social/publish.py publish --entry-id 2026-10-30-bedtime
 
-The token comes only from the HIBOU_THREADS_TOKEN environment variable. It is
-never printed, written to a file or put in an error message.
+Tokens come only from environment variables. They are never printed, written
+to a file or put in an error message.
 
 Every mode first runs the same pre-flight, in this order, and stops the whole
 run on the first failure: the token must belong to @lovehibou (and to the
@@ -38,6 +43,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import meta_publish as M  # noqa: E402
 import validate as V  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -198,11 +204,14 @@ class Store:
 
 
 class Runner:
-    def __init__(self, root=REPO_ROOT, env=None, api=http_api, clock=None, sleep=time.sleep, head=http_head, commit=None):
+    def __init__(self, root=REPO_ROOT, env=None, api=http_api, clock=None, sleep=time.sleep, head=http_head, commit=None, meta_api=None):
         self.env = os.environ if env is None else env
         self.root = Path(root)
         self.token = self.env.get('HIBOU_THREADS_TOKEN', '').strip()
+        self.fb_token = self.env.get('HIBOU_FB_PAGE_TOKEN', '').strip()
+        self.ig_user_id = self.env.get('HIBOU_IG_USER_ID', '').strip()
         self._api, self.sleep, self.head = api, sleep, head
+        self._meta_api = meta_api or M.graph
         self.now = clock or (lambda: datetime.now(TAIPEI))
         if commit is None:
             commit = self.env.get('GITHUB_ACTIONS') == 'true'
@@ -325,6 +334,8 @@ class Runner:
         if path.exists():
             for line in path.read_text(encoding='utf-8').splitlines():
                 row = json.loads(line)
+                if row.get('platform') in ('facebook', 'instagram'):
+                    continue
                 if row.get('action') == 'post' and row.get('slot') != 'test' and row.get('ts', '')[:10] == today.isoformat():
                     from_receipts += 1
         return max(from_api, from_receipts)
@@ -387,20 +398,25 @@ class Runner:
             counts[e.get('status')] = counts.get(e.get('status'), 0) + 1
         self.say('佇列：' + ('，'.join(f'{k} {v}' for k, v in sorted(counts.items())) or '空的'))
         for e in queue:
+            if V.entry_platform(e) != 'threads':
+                continue
             if e.get('status') == 'publishing':
                 self.say(f"{e['id']} 卡在 publishing：請到 @lovehibou 核對有沒有發出，再改成 published 或 failed", 'warning')
             elif e.get('status') == 'approved' and V.parse_publish_at(e.get('publish_at')) and e.get('slot') in WINDOWS:
                 if now > window(e)[1]:
                     self.say(f"{e['id']} 已過時間窗還沒發：下一次 publish 會標成 skipped，需要的話請改期", 'warning')
-        upcoming = sorted((e for e in queue if e.get('status') == 'approved' and V.parse_publish_at(e.get('publish_at'))
-                           and V.parse_publish_at(e['publish_at']) >= now), key=lambda e: e['publish_at'])
+        upcoming = sorted((e for e in queue if V.entry_platform(e) == 'threads' and e.get('status') == 'approved'
+                           and V.parse_publish_at(e.get('publish_at')) and V.parse_publish_at(e['publish_at']) >= now),
+                          key=lambda e: e['publish_at'])
         for e in upcoming[:4]:
             self.say(f"接下來：{e['publish_at'][:16]} {e['slot']} {e['id']}")
         for post in self.recent_posts()[:5]:
             self.say(f"最近貼文：{(post.get('timestamp') or '')[:16]} {post.get('permalink', '')} 「{first_line(post.get('text'))[:30]}」")
+        self.note_meta()
         return 1 if (self.failed or not valid or not quota_ok) else 0
 
     def publish(self, dry_run=False, entry_id=None):
+        cli_dry = dry_run
         quota_ok = self.preflight()
         if not quota_ok:
             raise Abort('24 小時貼文額度快用完，本次不發')
@@ -430,6 +446,8 @@ class Runner:
         recent = self.recent_posts()
         sent = 0
         for entry in ([target] if target else list(self.store.queue)):
+            if V.entry_platform(entry) != 'threads':
+                continue
             if entry.get('status') != 'approved':
                 if target:
                     self.say(f"{entry['id']} 的狀態是 {entry.get('status')}，不是 approved，不處理")
@@ -532,9 +550,209 @@ class Runner:
                                       f"chore(threads): {entry['id']} self-reply")
                     self.say(f"{entry['id']} 已自己回覆導流連結")
 
-        if sent == 0 and not self.failed:
+        considered = target is None or V.entry_platform(target) == 'threads'
+        if considered and sent == 0 and not self.failed:
             self.say('這次沒有要發的貼文' if not dry_run else 'dry-run 結束，沒有發任何貼文')
+        self.publish_meta(cli_dry, target)
         return 1 if self.failed else 0
+
+    def note_meta(self):
+        """One status line. The token and the Instagram id are never printed."""
+        fb_on = self.env.get('FB_PUBLISH_ENABLED', '').strip().lower() == 'true'
+        ig_on = self.env.get('IG_PUBLISH_ENABLED', '').strip().lower() == 'true'
+        self.say(
+            f"Facebook 開關{'開' if fb_on else '關'}，粉專 token {'有' if self.fb_token else '沒有'}；"
+            f"Instagram 開關{'開' if ig_on else '關'}，IG id {'有' if self.ig_user_id else '沒有'}"
+        )
+
+    def _meta_mode(self, platform, cli_dry):
+        """Return 'live', 'dry' or 'skip'. 'skip' leaves the queue entry untouched."""
+        flag = 'FB_PUBLISH_ENABLED' if platform == 'facebook' else 'IG_PUBLISH_ENABLED'
+        label = 'Facebook' if platform == 'facebook' else 'Instagram'
+        enabled = self.env.get(flag, '').strip().lower() == 'true'
+        if cli_dry or not enabled:
+            if not cli_dry and not enabled:
+                self.say(f'{flag} 不是 true，{label} 只模擬，不發文', 'notice')
+            return 'dry'
+        if self.branch != 'main':
+            self.say(f'只能從 main 發 {label}，這次是 {self.branch}，改為模擬', 'notice')
+            return 'dry'
+        if not self.fb_token:
+            self.say(f'HIBOU_FB_PAGE_TOKEN 沒有設定，{label} 這次略過，佇列不改', 'warning')
+            return 'skip'
+        if platform == 'instagram' and not self.ig_user_id:
+            self.say('HIBOU_IG_USER_ID 沒有設定，Instagram 這次略過，佇列不改', 'warning')
+            return 'skip'
+        return 'live'
+
+    def describe_meta(self, entry):
+        platform = V.entry_platform(entry)
+        self.say(f"dry-run：{entry['id']} 會在 {platform} 發「{first_line(entry['text'])[:40]}」")
+        if platform == 'facebook':
+            self.say(f"連結貼文：{entry.get('link')}")
+        if entry.get('bio_link'):
+            self.say(f"發文前請把 Instagram 簡介連結改成 {entry['bio_link']}（這則說明不會貼出去）")
+        urls = []
+        if platform == 'instagram':
+            urls = list(entry.get('image_urls') or [])
+            if entry.get('image_url'):
+                urls.append(entry['image_url'])
+        for url in urls:
+            if not self.head:
+                continue
+            status, ctype, size = self.head(url)
+            self.say(f'圖片 HEAD：{status}，{ctype}，{size} bytes', None if status == 200 else 'warning')
+
+    def publish_meta(self, cli_dry, target):
+        """Facebook and Instagram after Threads. A missing secret does not change Threads."""
+        if target is not None and V.entry_platform(target) == 'threads':
+            return
+        if target is not None and target.get('status') != 'approved':
+            self.say(f"{target['id']} 的狀態是 {target.get('status')}，不是 approved，不處理")
+            return
+        if target is not None:
+            grouped = {V.entry_platform(target): [target]}
+        else:
+            grouped = {'facebook': [], 'instagram': []}
+            for entry in list(self.store.queue):
+                platform = V.entry_platform(entry)
+                if platform in grouped:
+                    grouped[platform].append(entry)
+        modes = {}
+        for platform in ('facebook', 'instagram'):
+            group = grouped.get(platform) or []
+            if not group:
+                continue
+            actionable = [entry for entry in group if entry.get('status') == 'approved']
+            for entry in group:
+                if entry.get('status') == 'publishing':
+                    where = '粉專' if platform == 'facebook' else 'Instagram'
+                    self.say(f"{entry['id']} 卡在 publishing：請到{where}核對後手動改成 published 或 failed", 'warning')
+            if not actionable:
+                continue
+            grouped[platform] = actionable
+            modes[platform] = self._meta_mode(platform, cli_dry)
+        if not modes:
+            return
+
+        client = None
+        if any(mode == 'live' for mode in modes.values()):
+            client = M.Client(
+                self.fb_token, self.ig_user_id, self.env.get('HIBOU_FB_PAGE_ID', ''),
+                api=self._meta_api, sleep=self.sleep, head=self.head,
+            )
+            try:
+                page_id, name = client.load_page()
+            except M.PageMismatch as exc:
+                self.say(f'粉專不符：預期 {exc.expected}，實際 {exc.actual}；Facebook 與 Instagram 這次不發，佇列不改', 'error')
+                self.failed = True
+                client = None
+                modes = {platform: 'dry' for platform in modes}
+            except M.GraphError as exc:
+                if exc.auth or exc.permission:
+                    self.say('Facebook token 無效或權限不足，Facebook 與 Instagram 這次略過，佇列不改', 'warning')
+                    return
+                self.say(f'Facebook 粉專讀取失敗：{exc}。這次不發，佇列不改', 'error')
+                self.failed = True
+                return
+            else:
+                self.say(f'Facebook 粉專：{name}（id {page_id}）')
+            if client is not None and modes.get('instagram') == 'live':
+                try:
+                    username, _ig_id = client.load_instagram()
+                except M.GraphError as exc:
+                    self.say(f'Instagram 帳號讀不到（{exc}），Instagram 這次略過，佇列不改', 'warning')
+                    modes['instagram'] = 'skip'
+                else:
+                    self.say(f'Instagram：@{username}')
+                    if not client.ig_quota_ok():
+                        self.say(f'Instagram 24 小時發文額度已到 {M.IG_QUOTA_STOP}，這次略過', 'warning')
+                        modes['instagram'] = 'skip'
+
+        recent = {}
+        for platform, mode in modes.items():
+            if mode != 'live' or client is None:
+                continue
+            try:
+                recent[platform] = client.recent_facebook() if platform == 'facebook' else client.recent_instagram()
+            except M.GraphError as exc:
+                self.say(f'{platform} 讀不到近期貼文：{exc}。這次略過，佇列不改', 'warning')
+                modes[platform] = 'skip'
+
+        now = self.now()
+        for platform in ('facebook', 'instagram'):
+            mode = modes.get(platform)
+            if not mode or mode == 'skip':
+                continue
+            for entry in grouped.get(platform) or []:
+                self._meta_one(client, entry, mode == 'dry', now, recent.get(platform) or [])
+
+    def _meta_one(self, client, entry, dry, now, recent):
+        platform = V.entry_platform(entry)
+        label = 'Facebook' if platform == 'facebook' else 'Instagram'
+        if entry.get('status') != 'approved':
+            if dry and entry.get('status') == 'draft':
+                return
+            return
+        if entry.get('slot') not in WINDOWS or V.parse_publish_at(entry.get('publish_at')) is None:
+            self.say(f"{entry['id']} 的時間或時段無法判斷，略過", 'warning')
+            return
+        start, end = window(entry)
+        if now < start:
+            return
+        text_key = 'message' if platform == 'facebook' else 'caption'
+        line = first_line(entry.get('text'))
+        match = next((post for post in recent if first_line(post.get(text_key)) == line), None)
+        if match:
+            note = 'found existing: 帳號上已有同樣第一行的貼文，不重發'
+            permalink = match.get('permalink_url') or match.get('permalink')
+            self.say(f"{entry['id']}：{note} {permalink or ''}")
+            if not dry:
+                self.store.update(entry['id'], {
+                    'status': 'published', 'published_id': match.get('id'), 'permalink': permalink,
+                    'published_at': match.get('created_time') or match.get('timestamp'),
+                    'run_id': self.run_id, 'note': note,
+                }, self._meta_receipt(entry, 'skip', media_id=match.get('id'), permalink=permalink, note=note),
+                    f"chore({platform}): {entry['id']} already posted")
+            return
+        if now > end:
+            note = 'missed window'
+            self.say(f"{entry['id']} 已過時間窗（{entry['publish_at'][11:16]} 起算），不補發，標成 skipped", 'warning')
+            if not dry:
+                self.store.update(entry['id'], {'status': 'skipped', 'note': note, 'run_id': self.run_id},
+                                  self._meta_receipt(entry, 'skip', note=note),
+                                  f"chore({platform}): skip {entry['id']} (missed window)")
+            return
+        if dry:
+            self.describe_meta(entry)
+            return
+        self.store.update(entry['id'], {'status': 'publishing', 'run_id': self.run_id}, None,
+                          f"chore({platform}): publishing {entry['id']}")
+        try:
+            if platform == 'facebook':
+                container, media_id, permalink = client.publish_facebook(entry)
+            else:
+                container, media_id, permalink = client.publish_instagram(entry)
+        except (M.GraphError, M.PostError) as exc:
+            note = f'{exc}'[:300]
+            self.say(f"{entry['id']} 發文失敗：{note}。請到{label}核對是否已出現，不會自動重試", 'error')
+            self.store.update(entry['id'], {'status': 'failed', 'error': note},
+                              self._meta_receipt(entry, 'fail', note=note),
+                              f"chore({platform}): {entry['id']} failed")
+            self.failed = True
+            return
+        self.store.update(entry['id'], {
+            'status': 'published', 'container_id': container, 'published_id': media_id, 'permalink': permalink,
+            'published_at': self.now().isoformat(timespec='seconds'), 'run_id': self.run_id, 'error': None,
+        }, self._meta_receipt(entry, 'post', container_id=container, media_id=media_id, permalink=permalink),
+            f"chore({platform}): published {entry['id']}")
+        self.say(f"已發出 {entry['id']}：{permalink or media_id}")
+        recent.insert(0, {'id': media_id, text_key: entry['text'], 'permalink': permalink, 'permalink_url': permalink})
+
+    def _meta_receipt(self, entry, action, **fields):
+        row = self.receipt(entry, action, **fields)
+        row['platform'] = V.entry_platform(entry)
+        return row
 
 
 def main(argv=None, **runner_args):

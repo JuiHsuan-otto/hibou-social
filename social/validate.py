@@ -27,6 +27,33 @@ SITE_HOST = 'www.ihibou.com'
 SLOTS = ('morning', 'noon', 'evening', 'bedtime', 'test')
 STATUSES = ('draft', 'approved', 'publishing', 'published', 'failed', 'skipped', 'posted_by_chrome')
 MEDIA_TYPES = ('TEXT', 'IMAGE', 'VIDEO')
+PLATFORMS = ('threads', 'facebook', 'instagram')
+# Facebook link posts and Instagram captions. Threads text stays on TEXT_LIMIT.
+META_FB_LIMIT = 500
+META_IG_LIMIT = 2200
+GIFT_DATE_LINE = '有送禮日的話，先用 LINE 問我們'
+# A date promise has to be this sentence. Mentioning 禮物 on its own is fine.
+GIFT_DATE_CUES = ('送禮日', '趕得及', '來得及', '預產期', '指定日期', '指定日', '趕不趕')
+ARTICLE_PATH_RE = re.compile(r'^/(articles|journals)/[A-Za-z0-9][A-Za-z0-9_-]*$')
+IG_LINK_HINTS = ('連結放在簡介',)
+# Extra blocks for Facebook and Instagram copy. Threads keeps the BANNED list only.
+# AI / how-it-was-made, medical claims, stock, lead time, Japan marketing lines, service tone.
+META_BANNED = (
+    'ChatGPT', 'Gemini', 'Claude', '人工智慧', '語言模型', '自動生成', 'AI生成', 'AI 生成', '生成式',
+    '代工', '治療', '療效', '治癒', '預防疾病', '不會過敏', '抗過敏', '無毒', '醫療效果', '藥效',
+    '醫師推薦', '臨床證實', '診斷', '處方', '保證有效',
+    '現貨', '缺貨', '補貨', '庫存', '預購', '交期', '出貨', '到貨', '備貨', '製作天數', '只剩',
+    '感謝您的分享', '非常理解您的感受', '非常理解你的感受', '希望對您有幫助', '希望對你有幫助',
+    '每個寶寶都是獨一無二的', '有任何問題歡迎', '很高興為您', '祝您', '親愛的', '不便之處', '敬請',
+    '日本製', '日本設計', '日本熱銷',
+    '宝宝', '妈妈', '这个', '没有',
+)
+META_PRICE_RE = re.compile(
+    r'(?:nt\$|ntd|twd|台幣|美金|售價|定價|特價|價錢|價格)|(?:[$¥￥]\s*\d)|(?:\d[\d,]*\s*(?:元|塊))',
+    re.I,
+)
+META_LIST_RE = re.compile(r'^(?:\d+[\.、\)]|[一二三四五六七八九十]+[、.]|[-*•・])\s*\S')
+META_HASHTAG_RE = re.compile(r'[#＃]')
 # Entries still waiting to go out get the full content check; finished ones only the structural one.
 CONTENT_CHECKED = ('draft', 'approved')
 REQUIRED = ('id', 'slot', 'publish_at', 'status', 'media_type', 'text')
@@ -132,6 +159,157 @@ def image_info(data):
             return 'JPEG', width, height
         i += 2 + length
     return None
+
+
+def entry_platform(entry):
+    """Missing platform is Threads, so the existing queue does not change meaning."""
+    if not isinstance(entry, dict):
+        return ''
+    value = entry.get('platform')
+    if value in (None, ''):
+        return 'threads'
+    return value
+
+
+def article_path(url):
+    """Return the /articles/ or /journals/ path, or None.
+
+    The stored link has no query and no fragment, so the card URL stays stable.
+    """
+    if not isinstance(url, str):
+        return None
+    parts = urllib.parse.urlsplit(url.strip())
+    if parts.scheme != 'https' or parts.netloc != SITE_HOST or parts.query or parts.fragment:
+        return None
+    if parts.username or parts.password:
+        return None
+    path = parts.path.rstrip('/')
+    if not ARTICLE_PATH_RE.match(path or ''):
+        return None
+    return path
+
+
+def canonical_article_url(url):
+    path = article_path(url)
+    if not path:
+        return None
+    return f'https://{SITE_HOST}{path}'
+
+
+def public_image_problem(url):
+    """Instagram has to fetch a public JPEG or PNG from the HiBOU site."""
+    if not isinstance(url, str) or not url.strip():
+        return 'image url is missing'
+    parts = urllib.parse.urlsplit(url.strip())
+    if parts.scheme != 'https' or parts.netloc != SITE_HOST:
+        return f'image must be on https://{SITE_HOST}'
+    if parts.username or '..' in parts.path.split('/'):
+        return 'image path is invalid'
+    if not re.search(r'\.(jpe?g|png)$', parts.path, re.I):
+        return 'image must be a JPEG or PNG'
+    return None
+
+
+def meta_copy_problems(text, platform):
+    """Guardrails for Facebook and Instagram copy. Empty list means it may be queued."""
+    problems = []
+    raw = text if isinstance(text, str) else ''
+    stripped = raw.strip()
+    if not stripped:
+        return ['text is empty']
+    limit = META_IG_LIMIT if platform == 'instagram' else META_FB_LIMIT
+    length = text_length(stripped)
+    if length > limit:
+        problems.append(f'text is {length} characters (limit {limit})')
+    emoji = sorted({ch for ch in stripped if is_emoji(ch)})
+    if emoji:
+        problems.append('text contains emoji ' + ' '.join(f'U+{ord(c):04X}' for c in emoji) + ' (use XD／哈哈)')
+    if META_HASHTAG_RE.search(stripped):
+        problems.append('text contains a hashtag')
+    if '您' in stripped:
+        problems.append('text contains 「您」')
+    if META_PRICE_RE.search(stripped):
+        problems.append('text contains a price')
+    list_lines = sum(1 for line in stripped.splitlines() if META_LIST_RE.match(line.strip()))
+    if list_lines >= 2:
+        problems.append('text is a list')
+    if any(cue in stripped for cue in GIFT_DATE_CUES) and GIFT_DATE_LINE not in stripped:
+        problems.append(f'gift dates must use 「{GIFT_DATE_LINE}」')
+    lowered = stripped.lower()
+    for word in BANNED + META_BANNED:
+        if word.lower() in lowered:
+            problems.append(f'text contains banned wording 「{word}」')
+    urls = find_urls(stripped)
+    if platform == 'instagram':
+        if urls:
+            problems.append('instagram caption cannot contain a link')
+        if not any(hint.lower() in lowered for hint in IG_LINK_HINTS) and 'link in bio' not in lowered:
+            problems.append('instagram caption needs 「連結放在簡介」')
+    else:
+        for url in urls:
+            parts = urllib.parse.urlsplit(url)
+            if parts.scheme != 'https' or parts.netloc != SITE_HOST:
+                problems.append(f'text links outside https://{SITE_HOST}: {url}')
+    return problems
+
+
+def meta_entry_problems(entry):
+    """Content rules for a Facebook or Instagram queue entry."""
+    problems = []
+    platform = entry_platform(entry)
+    for key in ('id', 'slot', 'publish_at', 'status', 'media_type', 'text', 'platform'):
+        if entry.get(key) in (None, ''):
+            problems.append(f'missing {key}')
+    if entry.get('slot') not in SLOTS:
+        problems.append(f'slot {entry.get("slot")!r} is not one of {", ".join(SLOTS)}')
+    problems.extend(meta_copy_problems(entry.get('text'), platform))
+    media = entry.get('media_type')
+    if platform == 'facebook':
+        if media != 'LINK':
+            problems.append('facebook posts use media_type LINK')
+        if not article_path(entry.get('link')):
+            problems.append(f'facebook link must be an https://{SITE_HOST}/articles/ or /journals/ URL with no query')
+        if entry.get('image_url') or entry.get('image_urls') or entry.get('video_url'):
+            problems.append('facebook link posts do not take image_url, image_urls or video_url')
+    else:
+        if media not in ('IMAGE', 'CAROUSEL'):
+            problems.append('instagram media_type must be IMAGE or CAROUSEL')
+        if entry.get('link'):
+            problems.append('instagram posts cannot include a link attachment')
+        if entry.get('video_url'):
+            problems.append('instagram queue entries do not take video_url')
+        if media == 'IMAGE':
+            problem = public_image_problem(entry.get('image_url'))
+            if problem:
+                problems.append(problem)
+            if entry.get('image_urls'):
+                problems.append('image_urls is only for CAROUSEL')
+        elif media == 'CAROUSEL':
+            urls = entry.get('image_urls')
+            if not isinstance(urls, list) or not 2 <= len(urls) <= 10:
+                problems.append('carousel needs image_urls with 2–10 images')
+            else:
+                for url in urls:
+                    problem = public_image_problem(url)
+                    if problem:
+                        problems.append(problem)
+            if entry.get('image_url'):
+                problems.append('carousel uses image_urls, not image_url')
+    if entry.get('self_reply'):
+        problems.append('self_reply is only for Threads')
+    if entry.get('topic_tag'):
+        problems.append('topic_tag is only for Threads')
+    bio = entry.get('bio_link')
+    if bio not in (None, ''):
+        if platform != 'instagram' or not article_path(bio):
+            problems.append('bio_link is only for Instagram and must be an article or journal URL')
+    if entry.get('status') == 'approved':
+        for key in ('approved_by', 'approved_at'):
+            if not entry.get(key):
+                problems.append(f'approved entries need {key}')
+        if entry.get('slot') == 'test' and entry.get('approved_by') != 'otto':
+            problems.append('test posts need approved_by "otto"')
+    return problems
 
 
 def check_text(label, text, problems):
@@ -258,7 +436,15 @@ def validate_entry(entry, root=REPO_ROOT):
         problems.append('id is missing or has characters other than letters, digits, . _ -')
     if parse_publish_at(entry.get('publish_at')) is None:
         problems.append('publish_at must be an ISO time ending in +08:00')
+    raw_platform = entry.get('platform')
+    if raw_platform not in (None, '') and raw_platform not in PLATFORMS:
+        problems.append(f'platform {raw_platform!r} is not one of {", ".join(PLATFORMS)}')
     if status == 'posted_by_chrome' or status not in CONTENT_CHECKED:
+        return problems
+    platform = entry_platform(entry)
+    if platform in ('facebook', 'instagram'):
+        return problems + meta_entry_problems(entry)
+    if platform != 'threads':
         return problems
 
     for key in REQUIRED:

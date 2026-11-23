@@ -37,15 +37,19 @@
 
 | 欄位 | 意思 |
 |---|---|
-| `id` | 例如 `2026-10-30-bedtime` |
+| `id` | 例如 `2026-10-30-bedtime`。文章草稿會用 `2026-11-25-facebook-文章slug` 這種 id |
+| `platform` | 不填就是 Threads。`facebook` 是粉專連結貼文，`instagram` 是單圖或輪播 |
 | `slot` | `morning`（07:30）、`noon`（12:30）、`evening`（18:30）、`bedtime`（21:30）、`test` |
 | `publish_at` | 預定時間，一定要寫 `+08:00` |
 | `status` | `draft` → `approved` → `publishing` → `published`；或 `failed`、`skipped`；Chrome 時期發過的是 `posted_by_chrome` |
-| `media_type` | `TEXT`、`IMAGE` 或 `VIDEO` |
-| `text` | 貼文內容 |
-| `image_url`、`image_sha256` | 圖片放在本 repo 的 `social/images/`，網址和檔案指紋要對得上 |
+| `media_type` | Threads：`TEXT`、`IMAGE`、`VIDEO`。Facebook：`LINK`。Instagram：`IMAGE` 或 `CAROUSEL` |
+| `text` | 貼文內容。Facebook 與 Instagram 另有文案規則，見第十節 |
+| `image_url`、`image_sha256` | Threads 圖片放在本 repo 的 `social/images/`，網址和檔案指紋要對得上。Instagram 單圖改用官網上的 JPEG 或 PNG，不填指紋 |
+| `image_urls` | Instagram 輪播，2 到 10 張官網上的 JPEG 或 PNG |
 | `video_url` | 影片網址。必須是本 repo `main` 上 `social/videos/` 的 raw 連結，且以 `.mp4` 結尾。跟圖片一樣指到 `main`，所以分支合併前 Threads 抓不到檔。不填 sha256 |
-| `topic_tag` | 主題，例如「育兒日常」「帶娃出門崩潰日記」 |
+| `link` | Threads 文字貼文的連結預覽，或 Facebook 要打開的文章網址。Facebook 只能填 `https://www.ihibou.com/articles/` 或 `/journals/`，而且不能帶網址參數 |
+| `bio_link` | 只給 Instagram。發文前要手動放進簡介的文章網址，程式不會把它寫進說明 |
+| `topic_tag` | Threads 主題，例如「育兒日常」「帶娃出門崩潰日記」。Facebook 與 Instagram 不要填 |
 | `self_reply` | 發完後自己回覆的導流文字，例如 `{"text": "延伸看：https://www.ihibou.com/..."}`；不需要就填 `null` |
 | `pin_after_post` | 要釘選就填 `true`。API 不能釘選，發完會標 `needs_pin`，要人工去釘 |
 | `approved_by`、`approved_at` | 誰在什麼時候核准 |
@@ -66,7 +70,7 @@
 3. 真的要發之前，先把狀態改成 `publishing` 並推回 GitHub，推不上去就不發。
 4. 看到卡在 `publishing` 的項目，只會提醒人工核對，絕不自動重試。
    - 核對方法：去 @lovehibou 看那則有沒有出現，再把狀態改成 `published` 或 `failed`。
-5. 同一天（台北時間）最多 4 則一般貼文，測試貼文不算。
+5. 同一天（台北時間）最多 4 則一般 Threads 貼文，測試貼文不算。Facebook 與 Instagram 也不算進這 4 則。
 
 **每次發文前還會先檢查：**
 - token 是不是 lovehibou 的，而且帳號 id 也要對得上。不對就整批停止、一則都不發。
@@ -102,6 +106,11 @@ bash social/refresh_token.sh
 | Variable | `HIBOU_THREADS_USER_ID` | 第一次健康檢查印出的 id |
 | Variable | `HIBOU_THREADS_TOKEN_ISSUED` | token 產生或續期的日期 |
 | Variable | `THREADS_PUBLISH_ENABLED` | 總開關：`true` 才會真的發，其他值一律只模擬 |
+| Variable | `FB_PUBLISH_ENABLED` | Facebook 粉專總開關：`true` 才真的發，其他值只模擬 |
+| Variable | `IG_PUBLISH_ENABLED` | Instagram 總開關：`true` 才真的發，其他值只模擬 |
+| Secret | `HIBOU_FB_PAGE_TOKEN` | 粉專的長期 Page token。沒有這把，Facebook 與 Instagram 略過，Threads 照常 |
+| Secret | `HIBOU_IG_USER_ID` | Instagram 專業帳號的 id。沒有的話只略過 Instagram |
+| Variable | `HIBOU_FB_PAGE_ID` | 選用。有填的話，token 對到的粉專 id 必須一樣，否則這次不發 |
 | Variable | `THREADS_ENGAGE_ENABLED` | 互動總開關：`true` 才會真的回覆或留言，其他值一律只模擬 |
 | Variable | `THREADS_ENGAGE_DISCOVERY` | 關鍵字留言：`false` 強制關閉；`true` 就算權限清單讀不到也會試；不設的話，token 有 `threads_keyword_search` 才開 |
 | Secret | `GEMINI_API_KEY` | 選用。有這把金鑰時，一般回覆和關鍵字留言用 Gemini 寫。沒有就用固定句型。也可以改放 `GOOGLE_API_KEY` |
@@ -122,7 +131,9 @@ bash social/refresh_token.sh
 
 ## 八、給維護的人
 
-- `publish.py`：主程式，只用 Python 標準函式庫。
+- `publish.py`：主程式，只用 Python 標準函式庫。Threads 發完後才處理 Facebook 與 Instagram。
+- `meta_publish.py`：粉專連結貼文、Instagram 單圖與輪播。token 只從環境變數進來。
+- `article_queue.py`：讀一篇活著的文章，產生三個平台的草稿。
 - `validate.py`：佇列檢查，CI 和發文前都會跑。
 - `import_schedule.py`：把 Mac 上 `schedule.json` 的睡前文轉進佇列。預設只印出、不寫入；加 `--write` 才寫。它只讀 `schedule.json`，不會改那個檔。
 - `tests/`：用假的 Threads API 測試，不連網路：`python3 -m unittest discover -s social/tests -v`。
@@ -163,3 +174,83 @@ bash social/refresh_token.sh
 手動執行：Actions → **threads-engage** → **Run workflow**。`dry_run` 預設是開的。要真的送出，總開關要是 `true`，而且 `dry_run` 要關掉，並且從 `main` 跑。
 
 緊急停止：把 `THREADS_ENGAGE_ENABLED` 改成 `false`，或到 Actions 把 **threads-engage** 停用。已經送出的留言不會自動刪。
+
+## 十、Facebook 粉專與 Instagram（文章導流）
+
+Threads 的排程沒有改。同一支 `threads-publish` 在 Threads 處理完之後，才看佇列裡 `platform` 是 `facebook` 或 `instagram` 的項目。開關預設是關的，關著就只模擬。
+
+文章進佇列用這個指令（先印出、不寫入；確認沒問題再加 `--write`）：
+
+```bash
+python3 social/article_queue.py https://www.ihibou.com/articles/某一篇
+python3 social/article_queue.py --file urls.txt --write
+```
+
+它會自己打開那一頁，確認是 HTTP 200，讀標題、說明和 `og:image`，然後寫三則 `draft`：
+
+| 平台 | 時間（台北） | 既有排程會在什麼時候送出 | 貼法 |
+|---|---|---|---|
+| Threads | 07:05 | 07:45 那班 | 文字，附上文章網址 |
+| Facebook | 18:10 | 18:45 那班 | 連結貼文，點下去就是那篇文章 |
+| Instagram | 21:05 | 21:32 那班 | 單圖或輪播。說明不能放網址，所以寫「連結放在簡介」 |
+
+這三個時間刻意不是 07:30、12:30、18:30、21:30，也不是同一分鐘。現有的 12:00、20:00 Threads 貼文不會被改到。一天若已經有 4 則 Threads，文章那則會改排到下一天。這 4 則只算 Threads，粉專和 Instagram 不算。草稿不會自己變核准，要有人把 `status` 改成 `approved` 並填 `approved_by`、`approved_at` 才會進發送流程。
+
+Instagram 的說明裡沒有連結。`bio_link` 記的是這篇文章的網址，發出去之前要先到 Instagram 把簡介連結改成這個網址。模擬時也會再提醒一次。
+
+**文案不能出現：** 內部 hashtag、AI 或製作來源的說法、價格、庫存數字、交期、醫療功效、日本製／日本設計／日本熱銷、「您」、條列。提到送禮日，只能用「有送禮日的話，先用 LINE 問我們」。語氣用台灣口語。三個平台的句子不會是同一段。
+
+只要佇列裡有一則草稿或已核准的項目沒過 `validate.py`，Threads 也會整批不發。這是原來的規則，Facebook 與 Instagram 也算在裡面。
+
+**缺金鑰時：** 沒有 `HIBOU_FB_PAGE_TOKEN`，Facebook 和 Instagram 這次略過，佇列不改，Threads 照發。沒有 `HIBOU_IG_USER_ID` 時只略過 Instagram。token 無效或粉專 id 對不上，同樣不改那些項目的狀態（粉專 id 對不上時，這次執行會標失敗，提醒 Otto 看設定）。
+
+**什麼時候才會真的貼出去：** `FB_PUBLISH_ENABLED` 或 `IG_PUBLISH_ENABLED` 是 `true`，而且這次是從 `main` 跑、不是手動的 dry-run。兩個開關分開。緊急停止就把對應的變數改成 `false`。已經貼出去的，程式不會刪。
+
+Threads 的 token 如果無效，整次執行還是會先停，Facebook 與 Instagram 也不會發。這點跟原來的 Threads 檢查一樣。
+
+### Otto 要在 Meta 設定的權限
+
+App 要能管 HiBOU 的粉專，而且 Instagram 是專業帳號、已經連到這個粉專。App 要切到上線（Live）；還在開發模式時，只有 App 角色能發。
+
+向使用者要這些權限：
+
+- `pages_show_list`：列出這個人管的粉專
+- `pages_read_engagement`：讀粉專貼文，發文前對第一行，避免重發
+- `pages_manage_posts`：在粉專發連結貼文
+- `instagram_basic`：讀 Instagram 專業帳號
+- `instagram_content_publish`：發單圖與輪播
+
+粉專如果放在企業管理平台（Business Manager）裡，`/me/accounts` 回傳是空的，再補 `business_management`。
+
+### 長期粉專 token 怎麼換（Otto 本人做）
+
+不要把 token 貼進 repo、PR 或聊天紀錄。下面的網址只是格式，花括號要換成自己的值，而且只在自己的電腦上打。
+
+1. 用 Graph API Explorer 或 Facebook 登入，拿到短效使用者 token（大約 1 小時），範圍要包含上面的權限。
+2. 換成約 60 天的使用者 token：
+
+```text
+GET https://graph.facebook.com/v21.0/oauth/access_token
+  ?grant_type=fb_exchange_token
+  &client_id={app-id}
+  &client_secret={app-secret}
+  &fb_exchange_token={短效使用者 token}
+```
+
+3. 用這個長效使用者 token 問粉專。在 Graph API Explorer 右上角選這個 token 再送出，不要把 token 接在網址後面貼到別處。回傳裡那個粉專自己的 token 就是長期粉專 token（由長效使用者 token 換來的粉專 token 不會自己過期；人改密碼、移除 App 或權限被收回時才會失效）：
+
+```text
+GET https://graph.facebook.com/v21.0/me/accounts
+```
+
+4. 把那串粉專 token 貼到 repo secret `HIBOU_FB_PAGE_TOKEN`。粉專的 `id` 可以選擇填進 variable `HIBOU_FB_PAGE_ID`。
+5. 問 Instagram 專業帳號 id，貼到 secret `HIBOU_IG_USER_ID`：
+
+```text
+GET https://graph.facebook.com/v21.0/{page-id}?fields=instagram_business_account
+```
+
+回傳的 `instagram_business_account.id` 就是要填的 id。程式日誌不會印出這組 id，也不會印出 token。
+
+發文打的是 `https://graph.facebook.com/v21.0`。粉專是 `POST /{page-id}/feed`（`message` 加 `link`）。Instagram 是先 `POST /{ig-user-id}/media` 建容器，等 `status_code` 變成 `FINISHED`，再 `POST /{ig-user-id}/media_publish`。輪播是先建每一張圖（`is_carousel_item=true`），再把那些 id 放進一則 `CAROUSEL`。Instagram 每 24 小時大約 50 則，用到 40 這次就先停。
+
