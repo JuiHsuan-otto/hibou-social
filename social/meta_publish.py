@@ -105,6 +105,18 @@ class Client:
         self.page_name = me.get('name') or ''
         return page_id, self.page_name
 
+    def token_info(self):
+        """App, type, expiry and scopes of the page token. Never the token itself."""
+        data = self.call('GET', '/debug_token', {'input_token': self.token}).get('data') or {}
+        return {
+            'app': data.get('application') or '',
+            'app_id': str(data.get('app_id') or ''),
+            'type': data.get('type') or '',
+            'expires_at': int(data.get('expires_at') or 0),
+            'valid': bool(data.get('is_valid')),
+            'scopes': list(data.get('scopes') or []),
+        }
+
     def load_instagram(self):
         if not self.ig_user_id:
             raise GraphError('GET', '/instagram', 0, 'no ig user id')
