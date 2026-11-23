@@ -462,7 +462,8 @@ class ArticleQueueTests(unittest.TestCase):
         self.assertEqual(platforms, ['threads', 'facebook', 'instagram'])
         self.assertEqual(len({entry['text'] for entry in entries}), 3)
         minutes = [entry['publish_at'][11:16] for entry in entries]
-        self.assertEqual(minutes, ['07:05', '18:10', '21:05'])
+        self.assertEqual(minutes, ['07:05', '12:20', '12:25'])
+        self.assertEqual({entry['publish_at'][:10] for entry in entries}, {'2026-11-25'})  # Wednesday
         for entry in entries:
             hour, minute = entry['publish_at'][11:16].split(':')
             self.assertNotIn((int(hour), int(minute)), A.FORBIDDEN_MINUTES)
@@ -476,6 +477,15 @@ class ArticleQueueTests(unittest.TestCase):
         self.assertEqual(problems, [], problems)
         self.assertTrue(any('三則草稿' in line for line in messages))
 
+    def test_articles_skip_tuesday_thursday_and_busy_dates(self):
+        from datetime import date
+        now = datetime(2026, 11, 23, 16, 0, tzinfo=TAIPEI)
+        entries, _messages = A.plan([ARTICLE], [], now, self.fetch, REPO, busy={date(2026, 11, 25)})
+        self.assertEqual({entry['publish_at'][:10] for entry in entries}, {'2026-11-27'})
+        for entry in entries:
+            day = datetime.fromisoformat(entry['publish_at']).date()
+            self.assertIn(day.weekday(), A.ARTICLE_WEEKDAYS)
+
     def test_dead_link_is_skipped(self):
         now = datetime(2026, 11, 23, 16, 0, tzinfo=TAIPEI)
         entries, messages = A.plan(['https://www.ihibou.com/articles/missing-page'], [], now, self.fetch, REPO)
@@ -488,7 +498,7 @@ class ArticleQueueTests(unittest.TestCase):
         entries, messages = A.plan(urls, [], now, self.fetch, REPO)
         self.assertEqual(len(entries), 6, messages)
         days = {entry['publish_at'][:10] for entry in entries}
-        self.assertEqual(days, {'2026-11-24', '2026-11-25'})
+        self.assertEqual(days, {'2026-11-25', '2026-11-27'})  # Wednesday, Friday
         gift = [entry for entry in entries if entry['platform'] != 'threads' and 'gift-timing' in entry['id']]
         for entry in gift:
             self.assertIn(V.GIFT_DATE_LINE, entry['text'])

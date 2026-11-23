@@ -33,14 +33,19 @@ TAIPEI = timezone(timedelta(hours=8))
 USER_AGENT = 'hibou-social-article/1.0'
 # These minutes are inside the existing threads-publish windows:
 #   07:05 morning  -> 07:45 run (90 minutes)
-#   18:10 evening  -> 18:45 run (90 minutes)
-#   21:05 bedtime  -> 21:32 run (bedtime window)
+#   12:20 / 12:25 noon -> 12:45 run (90 minutes)
 # None of them is 07:30, 12:30, 18:30 or 21:30.
+# Facebook and Instagram article posts use the 12:20 article slot of the HiBOU
+# social calendar (RULES.md §1: 12:20 育兒圖文, 2–3 a week, 3+ hours from the
+# 16:30 / 20:30 videos and the 20:35 stories that Business Suite posts).
 PLATFORM_SLOTS = (
     ('threads', 'morning', (7, 5)),
-    ('facebook', 'evening', (18, 10)),
-    ('instagram', 'bedtime', (21, 5)),
+    ('facebook', 'noon', (12, 20)),
+    ('instagram', 'noon', (12, 25)),
 )
+# Monday, Wednesday, Friday: at most three article days a week. Tuesday and
+# Thursday 12:20 are left for the Business Suite parenting relay.
+ARTICLE_WEEKDAYS = (0, 2, 4)
 FORBIDDEN_MINUTES = {(7, 30), (12, 30), (18, 30), (21, 30)}
 THREADS_DAY_CAP = 4
 LOOKAHEAD_DAYS = 60
@@ -221,7 +226,7 @@ def first_open_day(queue, now, reserved):
     taken = taken_stamps(queue)
     for offset in range(LOOKAHEAD_DAYS):
         day = start + timedelta(days=offset)
-        if day in reserved:
+        if day in reserved or day.weekday() not in ARTICLE_WEEKDAYS:
             continue
         if threads_load(queue, day) >= THREADS_DAY_CAP:
             continue
@@ -295,9 +300,13 @@ def make_entries(article, day):
     return entries
 
 
-def plan(urls, queue, now, fetch, root=None):
-    """Return (new entries, messages). Raises nothing for a single bad URL."""
-    entries, messages, reserved = [], [], set()
+def plan(urls, queue, now, fetch, root=None, busy=()):
+    """Return (new entries, messages). Raises nothing for a single bad URL.
+
+    `busy` holds dates that already have a Facebook/Instagram post at 12:20 elsewhere
+    (for example the Business Suite parenting relay); no article is put on them.
+    """
+    entries, messages, reserved = [], [], set(busy or ())
     seen = set()
     for raw in urls:
         url = (raw or '').strip()
@@ -344,6 +353,7 @@ def main(argv=None, fetch=None, clock=None, root=None):
     parser.add_argument('--file', type=Path, help='text file with one URL per line')
     parser.add_argument('--root', type=Path, default=REPO_ROOT)
     parser.add_argument('--write', action='store_true', help='append drafts to social/queue.json')
+    parser.add_argument('--busy-dates', default='', help='YYYY-MM-DD,... days that already have a 12:20 FB/IG post')
     args = parser.parse_args(argv)
     urls = read_urls(args)
     if not urls:
@@ -353,7 +363,12 @@ def main(argv=None, fetch=None, clock=None, root=None):
     queue_path = root / 'social' / 'queue.json'
     queue = json.loads(queue_path.read_text(encoding='utf-8'))
     now = clock() if clock else datetime.now(TAIPEI)
-    entries, messages = plan(urls, queue, now, fetch or fetch_url, root)
+    try:
+        busy = {datetime.strptime(d.strip(), '%Y-%m-%d').date() for d in args.busy_dates.split(',') if d.strip()}
+    except ValueError:
+        print('::error::--busy-dates 要寫成 YYYY-MM-DD,YYYY-MM-DD', file=sys.stderr)
+        return 1
+    entries, messages = plan(urls, queue, now, fetch or fetch_url, root, busy)
     for line in messages:
         print(line, file=sys.stderr)
     print(json.dumps(entries, ensure_ascii=False, indent=2))
