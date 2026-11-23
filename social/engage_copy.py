@@ -13,17 +13,52 @@ import validate as V
 
 GIFT_DATE_TEXT = '有送禮日的話，先用 LINE 問我們'
 
-# Phase B keyword search. Seven queries × six daily runs stays under the
-# Threads cap of 500 keyword queries per rolling 7 days.
-KEYWORDS = (
-    '新手爸媽',
-    '懷孕',
-    '彌月',
-    '育兒日常',
-    '寶寶好物',
-    '媽媽心情',
-    '親子生活',
+# Phase B searches two HiBOU themes per run, three keywords each.
+# Six daily runs × 6 queries stays under the old self-limit of 500 queries
+# per 7 days, and far under Threads' current cap of 2,200 queries per 24 hours
+# (a query that returns nothing does not count). Themes rotate with the run,
+# so the six Taipei hours do not repeat the same searches.
+ENGAGE_HOURS = (9, 11, 14, 16, 19, 22)
+THEMES_PER_RUN = 2
+KEYWORDS_PER_THEME = 3
+THEMES = (
+    {
+        'id': 'miyue',
+        'label': '彌月送禮',
+        'keywords': ('彌月禮', '送彌月', '彌月禮物', '滿月禮'),
+    },
+    {
+        'id': 'newborn',
+        'label': '新生兒準備',
+        'keywords': ('新生兒', '待產包', '孕期', '生產'),
+    },
+    {
+        'id': 'stroller',
+        'label': '推車出門',
+        'keywords': ('推車', '推車防風', '推車蓋被', '推車出門'),
+    },
+    {
+        'id': 'sleep',
+        'label': '寶寶睡眠',
+        'keywords': ('哄睡', '寶寶睡不著', '夜奶', '寶寶夜醒'),
+    },
+    {
+        'id': 'warmth',
+        'label': '換季保暖',
+        'keywords': ('寶寶冬天', '寶寶冷', '換季保暖', '寶寶蓋被'),
+    },
+    {
+        'id': 'month',
+        'label': '坐月子日常',
+        'keywords': ('坐月子', '月子', '第一胎', '育嬰假'),
+    },
+    {
+        'id': 'gift_friend',
+        'label': '送禮給朋友的寶寶',
+        'keywords': ('送禮 寶寶', '朋友生了', '媽媽們', '同事生子'),
+    },
 )
+KEYWORDS = tuple(word for theme in THEMES for word in theme['keywords'])
 
 REPLY_RUN_CAP = 12
 COMMENT_RUN_CAP = 8
@@ -59,6 +94,7 @@ STOCK_OR_LEAD = (
     '現貨', '缺貨', '補貨', '庫存', '預購', '交期', '出貨', '到貨', '備貨', '製作天數',
 )
 JAPAN_CLAIMS = ('日本製', '日本設計', '日本熱銷')
+PRODUCT_PITCH = ('呼呼大睡被', '萬用雙夾', '防風罩', '我們家的', '快來買', '私訊下單')
 SERVICE_PHRASES = (
     '感謝您的分享', '非常理解您的感受', '非常理解你的感受',
     '希望對您有幫助', '希望對你有幫助', '每個寶寶都是獨一無二的',
@@ -118,10 +154,16 @@ COMMENT_PLAIN = (
     '這也太日常了。',
 )
 COMMENT_LINES = (
-    '「{detail}」這段好熟悉，新手時期每天都在學。',
-    '看到「{detail}」，突然覺得被說中。',
-    '「{detail}」寫得好真實，拍拍。',
-    '啊「{detail}」，這也太日常了。',
+    '「{detail}」這段好熟悉，你們後來怎麼辦？',
+    '看到「{detail}」，突然被說中。你家也這樣嗎？',
+    '「{detail}」好真實，拍拍。今晚有好一點嗎？',
+    '啊「{detail}」，日常到想笑。你怎麼熬的？',
+)
+# When the other person is asking about a rule we must not invent.
+OFFICIAL_CHECK_LINES = (
+    '細節記得再跟戶政或官網確認一下喔。',
+    '這種規定我不敢亂講，你再跟官網對一下。',
+    '我這邊不熟這些細節，問戶政或看官網比較準。',
 )
 
 ALWAYS_COMMERCE = (
@@ -171,6 +213,17 @@ MEDICAL_HELP = (
 )
 GIVEAWAY_WORDS = ('抽獎', '贈獎', '按讚抽', '留言抽', '分享抽', '免費送', '標記好友', '轉發抽')
 PROMO_WORDS = ('折扣碼', '團購', '業配', '廣告合作', '下殺')
+COMMERCIAL_WORDS = (
+    '蝦皮', 'momo', '代購', '批發', '廠商', '優惠券', '連結在', '私訊下單',
+    '現貨供應', '開團', '團媽', '免運', '全館', '購物車',
+)
+COMPLAINT_WORDS = ('惡婆婆', '白目', '靠北', '渣男', '八婆', '爛透了')
+RELATABLE_CUES = (
+    '寶寶', '嬰兒', '新生兒', '小孩', '兒子', '女兒', '老公', '老婆', '媽媽', '爸爸',
+    '孕', '懷', '產', '月子', '哄睡', '夜奶', '睡不著', '推車', '彌月', '滿月',
+    '第一胎', '二寶', '待產', '包巾', '蓋被', '冬天', '朋友生', '同事生',
+    '夜醒', '育嬰', '送禮',
+)
 MINOR_PHOTO_TEXT = ('寶寶照片', '兒子照片', '女兒照片', '萌照', '睡臉照', '小朋友的照片')
 VISUAL_MEDIA = ('IMAGE', 'VIDEO', 'CAROUSEL', 'CAROUSEL_ALBUM')
 
@@ -184,6 +237,25 @@ CJK_RE = re.compile(r'[\u4e00-\u9fff]')
 LIST_RE = re.compile(r'^(?:\d+[\.、\)]|[-*•・])\s*\S')
 HASHTAG_MARK = ('#', '＃')
 LINK_RE = re.compile(r'https?://\S+|www\.\S+', re.I)
+# Stating a subsidy, registration, insurance, tax, legal or medical rule.
+# The words alone are a claim. A number next to 天/日/元/個月 is a claim only
+# when the same sentence is about that kind of rule, so「三個月還在夜醒」stays fine.
+REGULATED_CLAIM_WORDS = (
+    '津貼', '補助', '補領', '申請期限', '育兒津貼', '生育給付',
+    '出生登記', '報戶口', '報完戶口',
+)
+REGULATED_NUMBER_CONTEXT = REGULATED_CLAIM_WORDS + (
+    '申請', '戶口', '戶籍', '戶政', '登記', '保險', '勞保', '健保',
+    '所得稅', '扣除額', '法規', '法令', '期限', '截止', '資格', '給付',
+    '醫療', '用藥', '劑量', '處方', '疫苗', '診斷', '納稅', '免稅',
+)
+REGULATED_TOPIC_RE = re.compile(
+    '津貼|補助|補領|申請期限|戶口|戶籍|出生登記|報戶口|育兒津貼|生育給付|'
+    '勞保|健保|所得稅|扣除額'
+)
+REGULATED_AMOUNT_RE = re.compile(
+    r'(?:[0-9０-９]{1,6}|[一二三四五六七八九十百]{1,4})\s*(?:天|日|個月|元|塊)'
+)
 
 REASON_LABEL = {
     'genuine': '一般回覆',
@@ -217,6 +289,11 @@ REASON_LABEL = {
     'same_post': '同一則已留過',
     'rate_limit': '速率限制',
     'policy': '社群政策',
+    'off_topic': '離題',
+    'commercial': '商業',
+    'complaint': '抱怨別人',
+    'generic': '太空泛',
+    'similar': '太像',
 }
 
 
@@ -342,6 +419,50 @@ def discovery_skip_reason(post, now):
     return None
 
 
+def _keyword_hits(text, keywords):
+    for keyword in keywords:
+        parts = [part for part in str(keyword).split() if part]
+        if parts and all(part in text for part in parts):
+            return True
+    return False
+
+
+def discovery_fit_reason(post, now, keywords=()):
+    """Skip reason for a keyword hit we might comment on, or None when it fits.
+
+    Own posts, sensitive topics and anything a HiBOU reply cannot warmly relate
+    to (shops, complaints about other people, off-topic) stay out.
+    """
+    reason = discovery_skip_reason(post, now)
+    if reason:
+        return reason
+    text = str(post.get('text') or '')
+    if any(word in text for word in COMMERCIAL_WORDS):
+        return 'commercial'
+    if any(word in text for word in COMPLAINT_WORDS):
+        return 'complaint'
+    if not _keyword_hits(text, keywords) and not any(cue in text for cue in RELATABLE_CUES):
+        return 'off_topic'
+    return None
+
+
+def engagement_rank(post, now):
+    """Higher means comment here first: a live thread, then a fresh post."""
+    when = post.get('timestamp')
+    if not isinstance(when, datetime):
+        return 0
+    age_hours = max(0.0, (now - when).total_seconds() / 3600)
+    score = max(0, 48 - int(age_hours / 4))
+    if post.get('has_replies') is True:
+        score += 60
+    text = str(post.get('text') or '')
+    if 20 <= len(text) <= 220:
+        score += 8
+    if any(mark in text for mark in ('？', '?', '嗎')):
+        score += 6
+    return score
+
+
 def sentence_count(text):
     parts = re.split(r'[。！？!?]+', (text or '').strip())
     return len([part for part in parts if part.strip()])
@@ -389,10 +510,26 @@ def validate_draft(text):
     if '您' in stripped:
         problems.append('您')
     lowered = stripped.lower()
-    for word in EFFICACY + STOCK_OR_LEAD + JAPAN_CLAIMS + SERVICE_PHRASES + SLOGANS + SIMPLIFIED:
+    for word in EFFICACY + STOCK_OR_LEAD + JAPAN_CLAIMS + PRODUCT_PITCH + SERVICE_PHRASES + SLOGANS + SIMPLIFIED:
         if word.lower() in lowered:
             problems.append(f'banned:{word}')
+    problems.extend(regulated_problems(stripped))
     return problems
+
+
+def regulated_problems(text):
+    """Claims about subsidy, registration, insurance, tax, legal or medical rules."""
+    found = []
+    for word in REGULATED_CLAIM_WORDS:
+        if word in text:
+            found.append(f'regulated:{word}')
+    if REGULATED_AMOUNT_RE.search(text) and any(word in text for word in REGULATED_NUMBER_CONTEXT):
+        found.append('regulated:number')
+    return found
+
+
+def touches_regulated(text):
+    return bool(REGULATED_TOPIC_RE.search(text or ''))
 
 
 def _clean_source(text):
@@ -443,8 +580,54 @@ def poll_answer(source_text, context):
     return ''
 
 
-def _line_from(templates, source_id, detail):
-    return templates[salt(source_id) % len(templates)].format(detail=detail)
+def _norm_copy(text):
+    text = EMOJI_RE.sub('', text or '')
+    text = re.sub(r'「[^」]*」', '', text)
+    return re.sub(r'\s+', '', text)
+
+
+def _bigrams(text):
+    if len(text) < 2:
+        return {text} if text else set()
+    return {text[i:i + 2] for i in range(len(text) - 1)}
+
+
+def near_duplicate(text, earlier, threshold=0.8):
+    """True when this draft would read as the same comment we already chose."""
+    left = _norm_copy(text)
+    if not left:
+        return True
+    left_grams = _bigrams(left)
+    for other in earlier:
+        right = _norm_copy(other)
+        if not right:
+            continue
+        if left == right:
+            return True
+        right_grams = _bigrams(right)
+        union = len(left_grams | right_grams)
+        if union and len(left_grams & right_grams) / union >= threshold:
+            return True
+    return False
+
+
+def generic_comment(text):
+    """A line that could be pasted under any post. Discovery does not send these."""
+    stripped = (text or '').strip()
+    return stripped in COMMENT_PLAIN or stripped in GENUINE_PLAIN or stripped == SAFE_FALLBACK or stripped in LAUGH_LINES
+
+
+def _pick(lines, source_id, prior_texts, detail=None):
+    base = salt(source_id)
+    for offset in range(len(lines)):
+        raw = lines[(base + offset) % len(lines)]
+        text = raw.format(detail=detail) if detail is not None else raw
+        if validate_draft(text):
+            continue
+        if prior_texts and near_duplicate(text, prior_texts):
+            continue
+        return text
+    return None
 
 
 def fixed_text(kind, source_id, subtype=None):
@@ -457,10 +640,15 @@ def fixed_text(kind, source_id, subtype=None):
     return None
 
 
-def template_text(kind, source_text, source_id, subtype=None, context=''):
+def template_text(kind, source_text, source_id, subtype=None, context='', prior_texts=()):
     fixed = fixed_text(kind, source_id, subtype)
     if fixed:
         return fixed
+    if touches_regulated(source_text):
+        picked = _pick(OFFICIAL_CHECK_LINES, source_id, prior_texts)
+        if picked:
+            return picked
+        return None if kind == 'comment' else SAFE_FALLBACK
     if kind != 'comment':
         option = poll_answer(source_text, context)
         if option:
@@ -475,12 +663,14 @@ def template_text(kind, source_text, source_id, subtype=None, context=''):
     if detail == '這段':
         plain = COMMENT_PLAIN if kind == 'comment' else GENUINE_PLAIN
         text = plain[salt(source_id) % len(plain)]
-        return text if not validate_draft(text) else SAFE_FALLBACK
+        if text and not validate_draft(text) and not (prior_texts and near_duplicate(text, prior_texts)):
+            return text
+        return None if kind == 'comment' else SAFE_FALLBACK
     templates = COMMENT_LINES if kind == 'comment' else GENUINE_LINES
-    text = _line_from(templates, source_id, detail)
-    if validate_draft(text):
-        return SAFE_FALLBACK
-    return text
+    text = _pick(templates, source_id, prior_texts, detail=detail)
+    if text:
+        return text
+    return None if kind == 'comment' else SAFE_FALLBACK
 
 
 def draft_problems_or_text(text):
@@ -604,11 +794,58 @@ def latest_outbound_at(rows):
     return latest
 
 
-def keyword_order(now):
-    if not KEYWORDS:
+def run_index(now):
+    """Which scheduled engage slot this clock falls in, counting across days."""
+    if now.utcoffset() is None:
+        raise ValueError('now must be timezone-aware')
+    idx = 0
+    for i, hour in enumerate(ENGAGE_HOURS):
+        if now.hour >= hour:
+            idx = i
+    return now.toordinal() * len(ENGAGE_HOURS) + idx
+
+
+def discovery_queries(now):
+    """Two themes, three keywords each. The next scheduled hour moves on."""
+    if not THEMES:
         return ()
-    start = now.hour % len(KEYWORDS)
-    return KEYWORDS[start:] + KEYWORDS[:start]
+    run = run_index(now)
+    start = (run * THEMES_PER_RUN) % len(THEMES)
+    chosen = [THEMES[(start + i) % len(THEMES)] for i in range(min(THEMES_PER_RUN, len(THEMES)))]
+    queries = []
+    seen = set()
+    for nth, theme in enumerate(chosen):
+        words = theme['keywords']
+        if not words:
+            continue
+        kstart = (run + nth) % len(words)
+        take = min(KEYWORDS_PER_THEME, len(words))
+        for j in range(take):
+            keyword = words[(kstart + j) % len(words)]
+            if keyword in seen:
+                continue
+            seen.add(keyword)
+            queries.append({'theme': theme['id'], 'label': theme['label'], 'keyword': keyword})
+    return tuple(queries)
+
+
+def keyword_order(now):
+    return tuple(item['keyword'] for item in discovery_queries(now))
+
+
+def keyword_search_params(keyword, now):
+    """RECENT text posts inside the lookback. TOP was ranking our own posts first."""
+    if now.utcoffset() is None:
+        raise ValueError('now must be timezone-aware')
+    since = int((now - timedelta(days=LOOKBACK_DAYS)).timestamp())
+    return {
+        'q': keyword,
+        'search_type': 'RECENT',
+        'search_mode': 'KEYWORD',
+        'media_type': 'TEXT',
+        'since': str(since),
+        'limit': '25',
+    }
 
 
 def build_prompt(kind, source_text, detail, context=''):
@@ -616,20 +853,37 @@ def build_prompt(kind, source_text, detail, context=''):
     banned = '、'.join((
         '您', '感謝您的分享', '非常理解您的感受', '希望對您有幫助', '每個寶寶都是獨一無二的',
         '網址', '價格', '現貨', '交期', '日本製', '日本設計', '日本熱銷', 'hashtag',
-        'AI', '抗菌', '防蟎', '低敏', '保證',
+        'AI', '抗菌', '防蟎', '低敏', '保證', '津貼', '補助', '補領', '申請期限',
     ))
     source = (source_text or '').replace('\n', ' ')[:400]
     post = (context or '').replace('\n', ' ')[:600]
     post_line = f'這則留言回覆的貼文：{post}\n' if post else ''
     focus = f'請接住這個具體細節：「{detail}」。\n' if detail != '這段' else '請接住對方講的重點。\n'
+    if kind == 'comment':
+        voice = (
+            '這是留在別人貼文底下的一句話。接住對方原文的一個具體細節，'
+            '溫暖、俏皮、像台灣朋友，讓人想回：一句共感，或一個輕的問句。'
+            '不要推銷、不要提我們的商品或禮盒、不要放連結、不要叫人私訊來買。'
+            '開頭不要跟別則一樣。1 到 2 句，最多 1 個 emoji。'
+        )
+    else:
+        voice = (
+            '規則：1 到 2 句短句；最多 1 個 emoji；開頭要自然，不要每則都一樣；'
+            '不要客服腔、不要條列、不要口號、不要推銷。'
+            '對方如果只留一個數字，是在回答貼文的投票，要接住他選的那一項，不要補充規定。'
+        )
+    regulated = (
+        '政府津貼、補助、戶口、出生登記、保險、稅、法律或醫療規定：'
+        '不要講任何天數、金額、資格、期限或怎麼申請。'
+        '用一句暖的口語請對方自己跟戶政或官網確認，不要下結論。'
+    )
     return (
         f'你是 HiBOU @lovehibou 的社群編輯，用台灣人平常講話的繁體中文寫一則 Threads {role}。\n'
         f'{post_line}'
         f'對方原文：{source}\n'
         f'{focus}'
-        '對方如果只留一個數字，是在回答貼文的投票，要接住他選的那一項。\n'
-        '規則：1 到 2 句短句；最多 1 個 emoji；開頭要自然，不要每則都一樣；'
-        '不要客服腔、不要條列、不要口號、不要推銷。'
+        f'{voice}\n'
+        f'{regulated}\n'
         f'禁止出現：{banned}。\n'
         '只輸出留言本身，不要引號、不要前綴。'
     )

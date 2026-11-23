@@ -148,6 +148,10 @@ class CopyTests(unittest.TestCase):
             '1. 先拍拍\n2. 再休息',
             '甲。乙。丙。丁。',
             '宝宝好可爱，拍拍。',
+            '沒錯！報完戶口記得順便把津貼申請送出去，60 天內辦好才能補領到 12 月喔。',
+            '報完戶口記得，60 天內辦好喔。',
+            '育兒津貼有一個 60 天關卡。',
+            '我們家的呼呼大睡被很軟，快來買。',
             '   ',
             '',
             '三個月還在夜醒' + '🦉' * 3,
@@ -166,6 +170,7 @@ class CopyTests(unittest.TestCase):
             '甲。乙。丙。',
             *C.COMMERCE_TEXT.values(),
             *C.SENSITIVE_LINES,
+            *C.OFFICIAL_CHECK_LINES,
             C.SAFE_FALLBACK,
         ]
         for sample in accepted:
@@ -237,6 +242,11 @@ class CopyTests(unittest.TestCase):
         prompt = C.build_prompt('genuine', '2', C.concrete_detail('2'), '留言報數字：1 十一月 2 十二月')
         self.assertIn('這則留言回覆的貼文：留言報數字', prompt)
         self.assertNotIn('「這段」', prompt)
+        self.assertIn('不要講任何天數', prompt)
+        self.assertIn('戶政', prompt)
+        comment = C.build_prompt('comment', '夜奶好累眼睛睜不開', '夜奶好累眼睛睜不開')
+        self.assertIn('輕的問句', comment)
+        self.assertIn('不要推銷', comment)
 
     def test_dedupe_ignores_dry_run_and_stopped(self):
         rows = [
@@ -337,7 +347,51 @@ class CopyTests(unittest.TestCase):
         self.assertEqual(C.discovery_skip_reason(post(text='好可愛'), NOW), 'too_short')
         self.assertEqual(C.discovery_skip_reason(post(text='hello parents this is long'), NOW), 'not_chinese')
         self.assertEqual(C.discovery_skip_reason(post(timestamp=NOW - timedelta(days=20)), NOW), 'too_old')
-        self.assertEqual(C.keyword_order(NOW)[0], C.KEYWORDS[NOW.hour % len(C.KEYWORDS)])
+        queries = C.discovery_queries(NOW)
+        self.assertEqual(C.keyword_order(NOW), tuple(item['keyword'] for item in queries))
+        self.assertEqual(len(queries), C.THEMES_PER_RUN * C.KEYWORDS_PER_THEME)
+        labels = tuple(dict.fromkeys(item['label'] for item in queries))
+        self.assertEqual(len(labels), C.THEMES_PER_RUN)
+        pairs = []
+        for hour in (9, 11, 14, 16, 19, 22):
+            slot = C.discovery_queries(NOW.replace(hour=hour))
+            pairs.append(tuple(dict.fromkeys(item['label'] for item in slot)))
+        self.assertEqual(len(set(pairs)), 6)
+        self.assertEqual(queries, C.discovery_queries(NOW))
+        params = C.keyword_search_params(queries[0]['keyword'], NOW)
+        self.assertEqual(params['search_type'], 'RECENT')
+        self.assertEqual(params['media_type'], 'TEXT')
+        self.assertEqual(params['since'], str(int((NOW - timedelta(days=C.LOOKBACK_DAYS)).timestamp())))
+
+    def test_regulated_topic_points_at_the_official_source(self):
+        self.assertIn(C.template_text('genuine', '津貼是不是 60 天內要申請', 'a'), C.OFFICIAL_CHECK_LINES)
+        self.assertNotIn('60', C.template_text('genuine', '補領要幾天', 'b'))
+        post = ('11、12 月出生的寶寶，育兒津貼有一個 60 天關卡。\n'
+                '留言報數字：你家寶寶 1 十一月出生 2 十二月出生')
+        self.assertIn('十二月出生', C.template_text('genuine', '2', 'c', None, post))
+
+    def test_discovery_fit_and_rank(self):
+        def post(text, **changes):
+            base = {
+                'username': 'parent',
+                'is_reply': False,
+                'media_type': 'TEXT',
+                'text': text,
+                'timestamp': NOW - timedelta(hours=5),
+                'has_replies': False,
+            }
+            base.update(changes)
+            return base
+
+        self.assertIsNone(C.discovery_fit_reason(post('夜奶好累眼睛睜不開'), NOW, ('夜奶',)))
+        self.assertEqual(C.discovery_fit_reason(post('夜奶代購這陣子好多'), NOW, ('夜奶',)), 'commercial')
+        self.assertEqual(C.discovery_fit_reason(post('今天股市好高快來討論'), NOW, ('夜奶',)), 'off_topic')
+        self.assertEqual(C.discovery_fit_reason(post('惡婆婆又在念夜奶的事好煩'), NOW, ('夜奶',)), 'complaint')
+        live = post('夜奶好累眼睛睜不開，你們呢？', has_replies=True, timestamp=NOW - timedelta(hours=1))
+        stale = post('夜奶好累眼睛睜不開', has_replies=False, timestamp=NOW - timedelta(days=4))
+        self.assertGreater(C.engagement_rank(live, NOW), C.engagement_rank(stale, NOW))
+        self.assertTrue(C.near_duplicate('夜奶好累，你們後來怎麼辦？', ['夜奶好累，你們後來怎麼辦？']))
+        self.assertFalse(C.near_duplicate('推車風好大，你們怎麼擋？', ['夜奶好累，你們後來怎麼辦？']))
 
     def test_stop_and_permission_classification(self):
         hidden = E.ApiError('POST', '/threads', 400, json.dumps({
@@ -415,6 +469,18 @@ class EngageRunTests(unittest.TestCase):
                 commit=False, complete=complete,
             )
         return code, sleeps
+
+    def public_post(self, media_id, username, text, timestamp, replies=False, media_type='TEXT'):
+        return {
+            'id': media_id,
+            'text': text,
+            'media_type': media_type,
+            'permalink': f'https://www.threads.com/@{username}/post/{media_id}',
+            'timestamp': timestamp,
+            'username': username,
+            'has_replies': replies,
+            'is_reply': False,
+        }
 
     def posted_texts(self, api):
         return [params.get('text') for method, path, params, _token in api.calls
@@ -602,58 +668,52 @@ class EngageRunTests(unittest.TestCase):
 
         api = FakeThreads(scopes=scopes)
         keyword = C.keyword_order(NOW)[0]
-        posts = []
-        for index in range(3):
-            posts.append({
-                'id': str(31000 + index),
-                'text': '懷孕二十週開始睡不好，每天只睡三小時',
-                'media_type': 'TEXT',
-                'permalink': f'https://www.threads.com/@maya/post/{31000 + index}',
-                'timestamp': '2026-11-22T01:00:00+0000',
-                'username': 'maya',
-                'has_replies': False,
-                'is_reply': False,
-            })
-        posts.append({
-            'id': '31010',
-            'text': '懷孕二十週開始睡不好，每天只睡三小時',
-            'media_type': 'IMAGE',
-            'permalink': 'https://www.threads.com/@maya/post/31010',
-            'timestamp': '2026-11-22T01:00:00+0000',
-            'username': 'other',
-            'has_replies': False,
-            'is_reply': False,
-        })
-        posts.append({
-            'id': '31011',
-            'text': '寶寶發燒了要不要看醫生，好擔心',
-            'media_type': 'TEXT',
-            'permalink': 'https://www.threads.com/@other/post/31011',
-            'timestamp': '2026-11-22T01:00:00+0000',
-            'username': 'other',
-            'has_replies': False,
-            'is_reply': False,
-        })
+        posts = [
+            self.public_post('31000', 'maya', '夜奶好累眼睛睜不開', '2026-11-22T01:00:00+0000', replies=False),
+            self.public_post('31001', 'maya', '哄睡失敗寶寶又醒了', '2026-11-22T18:00:00+0000', replies=True),
+            self.public_post('31002', 'maya', '推車出門風好大呀', '2026-11-23T00:30:00+0000', replies=True),
+            self.public_post('31010', 'other', '夜奶好累眼睛睜不開', '2026-11-22T01:00:00+0000', media_type='IMAGE'),
+            self.public_post('31011', 'other', '寶寶發燒了要不要看醫生，好擔心', '2026-11-22T01:00:00+0000'),
+        ]
         api.search[keyword] = posts
         self.stdout = io.StringIO()
         code, _sleeps = self.execute(api)
         self.assertEqual(code, 0, self.stdout.getvalue())
-        self.assertEqual(self.posted_targets(api), [])
-        self.assertFalse(any(path == '/keyword_search' for _m, path, _p, _t in api.calls))
+        self.assertEqual(self.posted_targets(api), ['31002', '31001'])
+        searches = [params for method, path, params, _token in api.calls if path == '/keyword_search']
+        self.assertEqual(len(searches), len(C.keyword_order(NOW)))
+        self.assertEqual(searches[0]['search_type'], 'RECENT')
+        self.assertEqual(searches[0]['media_type'], 'TEXT')
         self.assertIn('Gemini 不可用', self.stdout.getvalue())
+        self.assertIn('關鍵字候選 3 則', self.stdout.getvalue())
+        for text in self.posted_texts(api):
+            self.assertEqual(C.validate_draft(text), [], text)
+            self.assertFalse(C.generic_comment(text), text)
 
+        folder = self.root / 'social' / 'engagement'
+        if folder.is_dir():
+            for path in folder.glob('*.jsonl'):
+                path.unlink()
         api = FakeThreads(scopes=scopes)
         api.search[keyword] = posts
         self.stdout = io.StringIO()
-        code, _sleeps = self.execute(
-            api, env=dict(ENV, GEMINI_API_KEY=GEMINI), complete=lambda _prompt: '二十週睡不好真的很磨人，抱抱你',
-        )
+
+        def vary(prompt):
+            line = prompt.split('對方原文：', 1)[-1].split('\n', 1)[0].strip()
+            return f'{line[:8]}也太真實，你們後來怎麼辦？'
+
+        code, _sleeps = self.execute(api, env=dict(ENV, GEMINI_API_KEY=GEMINI), complete=vary)
         self.assertEqual(code, 0, self.stdout.getvalue())
-        self.assertEqual(self.posted_targets(api), ['31000', '31001'])
+        self.assertEqual(self.posted_targets(api), ['31002', '31001'])
         self.assertTrue(any(path == '/keyword_search' for _m, path, _p, _t in api.calls))
         rows = [row for row in self.log_rows() if row['action'] == 'posted']
         self.assertEqual([row['type'] for row in rows], ['comment', 'comment'])
         self.assertTrue(all(row['text'] and row['permalink'] for row in rows))
+        for row in rows:
+            self.assertNotIn('theme', row)
+            self.assertNotIn('label', row)
+        self.assertIn('留言主題', self.stdout.getvalue())
+        self.assertNotIn('maya', json.dumps(rows, ensure_ascii=False))
 
     def test_discovery_permission_error_keeps_replies(self):
         scopes = SCOPES + ['threads_keyword_search']
@@ -673,6 +733,71 @@ class EngageRunTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(api.creates, 0)
         self.assertIn('回覆額度', self.stdout.getvalue())
+
+    def test_subsidy_reply_falls_back_instead_of_stating_a_rule(self):
+        api = FakeThreads()
+        api.threads = [{
+            'id': '18001', 'timestamp': '2026-11-22T01:00:00+0000',
+            'permalink': 'https://www.threads.com/@lovehibou/post/18001',
+            'username': 'lovehibou', 'has_replies': True,
+            'text': '11、12 月出生的寶寶，育兒津貼有一個 60 天關卡。\n留言報數字：你家寶寶 1 十一月出生 2 十二月出生',
+        }]
+        api.conversations['18001'] = [
+            reply('19001', 'mama_lin', '2', 1),
+            reply('19008', 'rule_parent', '津貼是不是 60 天內要申請才補領得到', 2),
+        ]
+        env = dict(ENV, GEMINI_API_KEY=GEMINI)
+        bad = '沒錯！報完戶口記得順便把津貼申請送出去，60 天內辦好才能補領到 12 月喔。'
+
+        def always_bad(_prompt):
+            return bad
+
+        code, _sleeps = self.execute(api, env=env, complete=always_bad)
+        self.assertEqual(code, 0, self.stdout.getvalue())
+        texts = self.posted_texts(api)
+        self.assertEqual(len(texts), 2)
+        for text in texts:
+            self.assertEqual(C.validate_draft(text), [], text)
+            self.assertNotIn('津貼', text)
+            self.assertNotIn('60', text)
+            self.assertNotIn('補領', text)
+        self.assertTrue(any('十二月' in text or text in C.POLL_BARE_LINES for text in texts))
+        self.assertTrue(any(text in C.OFFICIAL_CHECK_LINES for text in texts))
+        self.assertNotIn(bad, self.stdout.getvalue())
+
+    def test_dry_run_counts_discovery_candidates(self):
+        scopes = SCOPES + ['threads_keyword_search']
+        api = FakeThreads(scopes=scopes)
+        queries = C.discovery_queries(NOW)
+        first, second = queries[0]['keyword'], queries[3]['keyword']
+        api.search[first] = [
+            self.public_post('41001', 'lovehibou', '夜奶好累眼睛睜不開呀', '2026-11-23T00:20:00+0000', replies=True),
+            self.public_post('41002', 'lin_parent', '夜奶好累眼睛睜不開，有人一樣嗎', '2026-11-23T00:10:00+0000', replies=True),
+            self.public_post('41003', 'shop', '夜奶代購這陣子好多', '2026-11-23T00:05:00+0000'),
+            self.public_post('41004', 'auntie', '惡婆婆又在念夜奶的事好煩', '2026-11-23T00:00:00+0000', replies=True),
+            self.public_post('41005', 'market', '今天股市好高快來討論', '2026-11-22T12:00:00+0000'),
+        ]
+        api.search[second] = [
+            self.public_post('41006', 'chen_parent', '坐月子半夜還在哄睡好累', '2026-11-22T20:00:00+0000', replies=True),
+        ]
+        # The second keyword may not be 坐月子; the post still has to match that keyword to be a realistic hit.
+        api.search[second][0]['text'] = f'{second}真的好累，半夜還在哄'
+
+        def vary(prompt):
+            line = prompt.split('對方原文：', 1)[-1].split('\n', 1)[0].strip()
+            return f'{line[:8]}也太真實，你們後來怎麼辦？'
+
+        code, _sleeps = self.execute(api, '--dry-run', env=dict(ENV, GEMINI_API_KEY=GEMINI), complete=vary)
+        self.assertEqual(code, 0, self.stdout.getvalue())
+        self.assertEqual(api.creates, 0)
+        output = self.stdout.getvalue()
+        self.assertIn('關鍵字候選 2 則', output)
+        self.assertIn('留言 2 則', output)
+        self.assertIn(queries[0]['label'], output)
+        self.assertIn(queries[3]['label'], output)
+        self.assertEqual(self.log_rows(), [])
+        self.assertNotIn('lin_parent', output)
+        self.assertNotIn('chen_parent', output)
 
 
 if __name__ == '__main__':
