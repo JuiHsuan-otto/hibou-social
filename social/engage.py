@@ -786,6 +786,9 @@ class Runner:
         if not self.discovery_on:
             self.say('關鍵字留言這輪關閉')
             return
+        if not self.llm_ready:
+            self.say('Gemini 不可用，這輪不在別人的貼文留言（固定句型留在陌生人貼文太像洗版）', 'notice')
+            return
         for keyword in C.keyword_order(self.now()):
             if self.comment_count >= C.COMMENT_RUN_CAP:
                 self.say(f'本輪留言已達 {C.COMMENT_RUN_CAP} 則')
