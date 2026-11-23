@@ -628,6 +628,17 @@ class EngageRunTests(unittest.TestCase):
         self.stdout = io.StringIO()
         code, _sleeps = self.execute(api)
         self.assertEqual(code, 0, self.stdout.getvalue())
+        self.assertEqual(self.posted_targets(api), [])
+        self.assertFalse(any(path == '/keyword_search' for _m, path, _p, _t in api.calls))
+        self.assertIn('Gemini 不可用', self.stdout.getvalue())
+
+        api = FakeThreads(scopes=scopes)
+        api.search[keyword] = posts
+        self.stdout = io.StringIO()
+        code, _sleeps = self.execute(
+            api, env=dict(ENV, GEMINI_API_KEY=GEMINI), complete=lambda _prompt: '二十週睡不好真的很磨人，抱抱你',
+        )
+        self.assertEqual(code, 0, self.stdout.getvalue())
         self.assertEqual(self.posted_targets(api), ['31000', '31001'])
         self.assertTrue(any(path == '/keyword_search' for _m, path, _p, _t in api.calls))
         rows = [row for row in self.log_rows() if row['action'] == 'posted']
