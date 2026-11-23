@@ -109,8 +109,8 @@ def redact(value):
     return text
 
 
-def mask_secret(value):
-    if value and os.environ.get('GITHUB_ACTIONS') == 'true':
+def mask_secret(value, env):
+    if value and env.get('GITHUB_ACTIONS') == 'true':
         sys.stdout.write(f'::add-mask::{value}\n')
         sys.stdout.flush()
 
@@ -938,8 +938,8 @@ class Runner:
             self.say(f'需要人工跟進 {len(humans)} 則（見上方警告）', 'warning')
 
     def run(self, dry_run=False):
-        mask_secret(self.token)
-        mask_secret(self.gemini_key)
+        mask_secret(self.token, self.env)
+        mask_secret(self.gemini_key, self.env)
         self.preflight()
         self.decide_mode(dry_run)
         self.say('模式：只模擬' if self.dry_run or self.preview_only else '模式：正式送出')

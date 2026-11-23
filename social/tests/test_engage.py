@@ -327,6 +327,14 @@ class CopyTests(unittest.TestCase):
         leaked = 'access_' + 'token=' + TOKEN
         self.assertNotIn(TOKEN, str(E.ApiError('GET', '/me', 400, leaked)))
 
+    def test_mask_follows_the_run_env_not_the_runner(self):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            E.mask_secret(TOKEN, {'GITHUB_ACTIONS': 'true'})
+            E.mask_secret('', {'GITHUB_ACTIONS': 'true'})
+            E.mask_secret(TOKEN, {})
+        self.assertEqual(out.getvalue(), f'::add-mask::{TOKEN}\n')
+
 
 class EngageRunTests(unittest.TestCase):
     def setUp(self):
