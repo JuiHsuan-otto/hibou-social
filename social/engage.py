@@ -12,7 +12,9 @@ is sent, and the dedupe log is not updated.
 
 Phase A reads replies and mentions from the last 14 days. Phase B (keyword
 comments) runs only when the token includes threads_keyword_search, unless
-THREADS_ENGAGE_DISCOVERY=false.
+THREADS_ENGAGE_DISCOVERY=false. Each run searches two HiBOU themes and comments
+on other people's recent text posts. Gemini writes those when it can; a
+specific fallback is used otherwise, and a generic line is not sent.
 
 Copy is checked by engage_copy.validate_draft before any send. Gemini is used
 when GEMINI_API_KEY or GOOGLE_API_KEY is set; otherwise a fixed colloquial
@@ -280,6 +282,7 @@ class Runner:
         self.last_post_at = None
         self.reply_count = 0
         self.comment_count = 0
+        self.candidate_count = 0
         self.skip_tallies = {}
         self.discovery_on = False
         self._halt = None
@@ -563,7 +566,15 @@ class Runner:
             return self._complete(prompt)
         return gemini_complete(prompt, self.gemini_key, self.model)
 
-    def compose(self, kind, source_text, source_id, subtype, context=''):
+    def _draft_problems(self, kind, text, prior_texts):
+        problems = list(C.validate_draft(text))
+        if kind == 'comment' and C.generic_comment(text):
+            problems.append('generic')
+        if kind == 'comment' and prior_texts and C.near_duplicate(text, prior_texts):
+            problems.append('similar')
+        return problems
+
+    def compose(self, kind, source_text, source_id, subtype, context='', prior_texts=()):
         fixed = C.fixed_text(kind, source_id, subtype)
         if fixed is not None:
             problems = C.validate_draft(fixed)
@@ -577,12 +588,14 @@ class Runner:
                     self.llm_ready = False
                     self.say(f'Gemini 這次無法產生文案（{self.scrub(str(error))}），改用固定句型', 'warning')
                     break
-                problems = C.validate_draft(text)
+                problems = self._draft_problems(kind, text, prior_texts)
                 if not problems:
                     return text, []
                 prompt += '\n上一則沒通過：' + '、'.join(problems) + '\n請只重寫留言本身。'
-        text = C.template_text(kind, source_text, source_id, subtype, context)
-        problems = C.validate_draft(text)
+        text = C.template_text(kind, source_text, source_id, subtype, context, prior_texts)
+        if not text:
+            return None, ['similar']
+        problems = self._draft_problems(kind, text, prior_texts)
         if problems:
             return None, problems
         return text, []
@@ -814,73 +827,111 @@ class Runner:
         if not self.discovery_on:
             self.say('關鍵字留言這輪關閉')
             return
+        plan = C.discovery_queries(self.now())
+        labels = []
+        for item in plan:
+            if item['label'] not in labels:
+                labels.append(item['label'])
+        self.say('關鍵字主題：' + '、'.join(labels))
         if not self.llm_ready:
-            self.say('Gemini 不可用，這輪不在別人的貼文留言（固定句型留在陌生人貼文太像洗版）', 'notice')
-            return
-        for keyword in C.keyword_order(self.now()):
-            if self.comment_count >= C.COMMENT_RUN_CAP:
-                self.say(f'本輪留言已達 {C.COMMENT_RUN_CAP} 則')
-                return
+            self.say('Gemini 不可用，關鍵字留言改用接住細節的固定句，太空泛的不送', 'notice')
+        candidates = []
+        seen = set()
+        for item in plan:
+            params = C.keyword_search_params(item['keyword'], self.now())
+            params['fields'] = SEARCH_FIELDS
             try:
-                found = self.paged('/keyword_search', {
-                    'q': keyword,
-                    'search_type': 'TOP',
-                    'fields': SEARCH_FIELDS,
-                    'limit': '10',
-                }, pages=1)
+                found = self.paged('/keyword_search', params, pages=1)
             except MissingScope:
                 self.say('token 沒有 threads_keyword_search，這輪不搜尋公開貼文', 'notice')
                 self.discovery_on = False
                 return
-            self.say(f'關鍵字「{keyword}」讀到 {len(found)} 則')
+            self.say(f"關鍵字「{item['keyword']}」（{item['label']}）讀到 {len(found)} 則")
             for post in found:
-                if self.comment_count >= C.COMMENT_RUN_CAP:
-                    self.say(f'本輪留言已達 {C.COMMENT_RUN_CAP} 則')
-                    return
                 source_id = media_id_of(post)
-                if not source_id:
+                if not source_id or source_id in seen:
                     continue
+                seen.add(source_id)
                 normalized = {
                     'username': username_of(post),
                     'is_reply': as_bool(post.get('is_reply')),
                     'media_type': post.get('media_type'),
                     'text': post.get('text') or '',
                     'timestamp': C.parse_iso(post.get('timestamp')),
+                    'has_replies': post.get('has_replies') is True,
                 }
-                reason = C.discovery_skip_reason(normalized, self.now())
+                reason = C.discovery_fit_reason(normalized, self.now(), (item['keyword'],))
                 if reason:
                     self.tally(reason)
                     continue
+                # Author and daily caps apply after ranking, so a better post
+                # from the same person is not dropped for an earlier weak one.
+                # Same post already handled in a previous run is still skipped.
                 block = C.comment_block_reason(
                     self.history + self.rows,
                     day=self.now().date().isoformat(),
                     author=self.author_key(normalized['username']),
                     source_id=source_id,
-                    run_count=self.comment_count,
+                    run_count=0,
                 )
-                if block in ('run_cap', 'day_cap'):
-                    self.say(f"關鍵字留言停在{C.REASON_LABEL.get(block, block)}")
-                    return
-                if block:
+                if block == 'same_post':
                     self.tally(block)
                     continue
-                if post.get('has_replies') is True and self.already_on_post(source_id):
-                    self.tally('same_post')
-                    continue
-                item = {
+                candidates.append({
                     'source_id': source_id,
                     'username': normalized['username'],
                     'text': normalized['text'],
                     'permalink': post.get('permalink') or '',
                     'root_url': post.get('permalink') or '',
-                }
-                text, problems = self.compose('comment', item['text'], source_id, None)
-                if text is None:
-                    self.tally('guardrail')
-                    self.say(f"留言文案未過，略過 {item['permalink'] or source_id}：{'、'.join(problems)}", 'warning')
-                    continue
-                self.comment_count += 1
-                self.send('comment', item, text, 'genuine', False)
+                    'has_replies': normalized['has_replies'],
+                    'timestamp': normalized['timestamp'],
+                    'label': item['label'],
+                })
+        candidates.sort(key=lambda cand: (-C.engagement_rank(cand, self.now()), cand['source_id']))
+        self.candidate_count = len(candidates)
+        self.say(f'關鍵字候選 {len(candidates)} 則')
+        own_hits = self.skip_tallies.get('own_account', 0)
+        other_hits = sum(value for key, value in self.skip_tallies.items() if key != 'own_account')
+        if own_hits and not candidates and not other_hits:
+            self.say(
+                '關鍵字目前只看到自己的貼文。threads_keyword_search 在 Meta 審核通過前'
+                '只會回自己的內容；這輪已改搜近期文字貼文（RECENT、since）',
+                'notice',
+            )
+        prior = []
+        for cand in candidates:
+            if self.comment_count >= C.COMMENT_RUN_CAP:
+                self.say(f'本輪留言已達 {C.COMMENT_RUN_CAP} 則')
+                return
+            block = C.comment_block_reason(
+                self.history + self.rows,
+                day=self.now().date().isoformat(),
+                author=self.author_key(cand['username']),
+                source_id=cand['source_id'],
+                run_count=self.comment_count,
+            )
+            if block in ('run_cap', 'day_cap'):
+                self.say(f"關鍵字留言停在{C.REASON_LABEL.get(block, block)}")
+                return
+            if block:
+                self.tally(block)
+                continue
+            if cand['has_replies'] and self.already_on_post(cand['source_id']):
+                self.tally('same_post')
+                continue
+            text, problems = self.compose(
+                'comment', cand['text'], cand['source_id'], None, prior_texts=prior,
+            )
+            if text is None:
+                kind = 'generic' if 'generic' in problems else 'similar' if 'similar' in problems else 'guardrail'
+                self.tally(kind)
+                self.say(f"留言文案未過，略過 post {cand['source_id']}：{'、'.join(problems)}", 'warning')
+                continue
+            # Theme stays in the run log. It is not written to the public jsonl.
+            self.say(f"留言主題 {cand['label']}")
+            self.comment_count += 1
+            self.send('comment', cand, text, 'genuine', False)
+            prior.append(text)
 
     def quota_allows_send(self):
         try:
