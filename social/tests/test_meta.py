@@ -122,6 +122,11 @@ class FakeGraph:
                 raise error
         if path == '/me':
             return {'id': self.page_id, 'name': 'HiBOU 喜福'}
+        if path == '/debug_token':
+            return {'data': {'application': 'HiBOU 社群串接', 'app_id': '1074864351736746', 'type': 'PAGE',
+                             'expires_at': 0, 'is_valid': True,
+                             'scopes': ['pages_show_list', 'pages_read_engagement', 'pages_manage_posts',
+                                        'instagram_basic', 'instagram_content_publish']}}
         if path == f'/{self.page_id}/feed' and method == 'GET':
             return {'data': self.recent_feed}
         if path == f'/{self.page_id}/feed' and method == 'POST':
@@ -170,6 +175,27 @@ class QueueCase(unittest.TestCase):
             clock=lambda: when, sleep=lambda _seconds: None,
             head=lambda _url: (200, 'image/png', '1200'), commit=False,
         )
+
+
+class MetaHealthCheckTests(QueueCase):
+    def test_check_reads_page_instagram_and_token_without_posting(self):
+        import io
+        from contextlib import redirect_stdout
+        self.write([threads_entry()])
+        graph = FakeGraph()
+        env = dict(THREADS_ENV, HIBOU_FB_PAGE_TOKEN=PAGE_TOKEN, HIBOU_IG_USER_ID=IG_ID, HIBOU_FB_PAGE_ID=PAGE_ID)
+        out = io.StringIO()
+        with redirect_stdout(out):
+            P.main(['check'], root=self.root, env=env, api=FakeThreads(), meta_api=graph,
+                   clock=lambda: datetime(2026, 11, 24, 7, 10, tzinfo=TAIPEI), sleep=lambda _s: None,
+                   head=lambda _url: (200, 'image/png', '1200'), commit=False)
+        text = out.getvalue()
+        self.assertIn('Meta 檢查：粉專 HiBOU 喜福（id 999）', text)
+        self.assertIn('token 來自 HiBOU 社群串接，類型 PAGE，到期 不會過期', text)
+        self.assertIn('Meta 檢查：Instagram @lovehibou', text)
+        self.assertNotIn('缺少', text)
+        self.assertNotIn(PAGE_TOKEN, text)
+        self.assertEqual(graph.posts, [])
 
 
 class PublishMetaTests(QueueCase):

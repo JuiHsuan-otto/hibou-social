@@ -413,7 +413,44 @@ class Runner:
         for post in self.recent_posts()[:5]:
             self.say(f"最近貼文：{(post.get('timestamp') or '')[:16]} {post.get('permalink', '')} 「{first_line(post.get('text'))[:30]}」")
         self.note_meta()
+        self.check_meta()
         return 1 if (self.failed or not valid or not quota_ok) else 0
+
+    META_SCOPES = ('pages_read_engagement', 'pages_manage_posts', 'instagram_basic', 'instagram_content_publish')
+
+    def check_meta(self):
+        """Read-only: confirm the page token reaches the HiBOU page and Instagram. Posts nothing."""
+        if not self.fb_token:
+            return
+        client = M.Client(self.fb_token, self.ig_user_id, self.env.get('HIBOU_FB_PAGE_ID', ''),
+                          api=self._meta_api, sleep=self.sleep, head=self.head)
+        try:
+            page_id, name = client.load_page()
+        except M.PageMismatch as exc:
+            self.say(f'Meta 檢查：粉專不符，預期 {exc.expected}，實際 {exc.actual}', 'warning')
+            return
+        except M.GraphError as exc:
+            reason = 'token 無效或過期' if exc.auth else ('權限不足' if exc.permission else str(exc)[:120])
+            self.say(f'Meta 檢查：讀不到粉專（{reason}）', 'warning')
+            return
+        self.say(f'Meta 檢查：粉專 {name}（id {page_id}）')
+        try:
+            info = client.token_info()
+        except M.GraphError:
+            info = None
+        if info:
+            expires = '不會過期' if not info['expires_at'] else time.strftime('%Y-%m-%d', time.gmtime(info['expires_at']))
+            self.say(f"Meta 檢查：token 來自 {info['app'] or info['app_id']}，類型 {info['type']}，到期 {expires}")
+            missing = [scope for scope in self.META_SCOPES if scope not in info['scopes']]
+            if missing:
+                self.say(f"Meta 檢查：token 缺少 {', '.join(missing)}", 'warning')
+        if self.ig_user_id:
+            try:
+                username, _ = client.load_instagram()
+            except M.GraphError as exc:
+                self.say(f'Meta 檢查：讀不到 Instagram 帳號（{str(exc)[:120]}）', 'warning')
+            else:
+                self.say(f'Meta 檢查：Instagram @{username}')
 
     def publish(self, dry_run=False, entry_id=None):
         cli_dry = dry_run
