@@ -130,7 +130,7 @@ bash social/refresh_token.sh
 - 互動流程另外寫 `social/engagement/YYYY-MM-DD.jsonl`。Insights 寫 `social/metrics/`。
 - `social/receipts/YYYY-MM.jsonl`：每次發文、回覆、略過、失敗都會加一行，只增不改。
 - `engage.py`、`engage_copy.py`：回覆與關鍵字留言。規則與開關見第九節。
-- `social/engagement/YYYY-MM-DD.jsonl`：互動紀錄，只增不改。dry-run 不寫這個檔。
+- `social/engagement/YYYY-MM-DD.jsonl`：互動紀錄，只增不改。dry-run 不寫這個檔。這個 repo 是公開的，所以紀錄只留貼文編號、時間、我們回的話和我們自己的貼文連結；不記對方帳號、對方貼文連結或分類（客訴、醫療等）。「同一人一天最多 2 則」用 `author_key`（以 token 為鑰的雜湊）判斷，無法反推帳號。Actions 輸出裡對方帳號一律遮成 `@m***`，需要人工跟進時附的是我們自己的貼文或回覆連結。
 
 ## 九、回覆與關鍵字留言（`threads-engage`）
 

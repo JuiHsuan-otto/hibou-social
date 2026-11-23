@@ -21,6 +21,8 @@ template is used. Gift-date, price, and complaint replies stay on fixed lines.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import hmac
 import json
 import os
 import re
@@ -237,6 +239,12 @@ def parent_id_of(item):
     return value if MEDIA_ID_RE.fullmatch(value) else ''
 
 
+def mask_name(name):
+    """Public Actions logs show only the first character of another account's name."""
+    name = str(name or '').strip().lstrip('@')
+    return f'@{name[:1]}***' if name else '@unknown'
+
+
 def is_ours(item, username):
     if as_bool(item.get('is_reply_owned_by_me')):
         return True
@@ -264,6 +272,8 @@ class Runner:
         self.history = []
         self.user_id = None
         self.username = None
+        self.human_count = 0
+        self._salt = os.urandom(16).hex()
         self.scopes = None
         self.dry_run = True
         self.preview_only = False
@@ -437,29 +447,47 @@ class Runner:
         return {
             'ts': self.now().isoformat(timespec='seconds'),
             'type': kind_type,
-            'source_url': item.get('permalink') or '',
             'source_id': item['source_id'],
-            'other_account': item.get('username') or '',
+            'author_key': self.author_key(item.get('username')),
             'text': text or '',
             'media_id': None,
             'permalink': None,
-            'root_url': item.get('root_url') or '',
             'action': None,
-            'reason': reason,
-            'needs_human': bool(needs_human),
+            'reason': None,
             'dry_run': bool(self.dry_run or self.preview_only),
             'run_id': self.run_id,
             'run_url': self.run_url,
             'note': None,
         }
 
+    def author_key(self, username):
+        # The log is public, so the author is stored only as a keyed hash: enough for the
+        # 2-comments-per-author-per-day cap, not reversible without the token.
+        name = str(username or '').strip().lstrip('@').lower()
+        if not name:
+            return ''
+        key = hashlib.sha256(('engage-author|' + (self.token or self._salt)).encode()).digest()
+        return hmac.new(key, name.encode(), hashlib.sha256).hexdigest()[:16]
+
+    def public_link(self, item, own_permalink=None):
+        # Only print links to @lovehibou's own posts; they show the other person's comment
+        # to anyone who needs it, without writing their name into the public log.
+        if own_permalink:
+            return own_permalink
+        own = f'/@{self.username}/' if self.username else None
+        for url in (item.get('root_url'), item.get('permalink')):
+            if url and own and own in url:
+                return url
+        return f"post {item['source_id']}"
+
     def tally(self, reason):
         self.skip_tallies[reason] = self.skip_tallies.get(reason, 0) + 1
 
-    def flag(self, item, reason):
+    def flag(self, item, reason, own_permalink=None):
+        self.human_count += 1
         label = C.REASON_LABEL.get(reason, reason)
-        link = item.get('permalink') or item.get('source_id')
-        self.say(f"需要人工跟進 @{item.get('username') or 'unknown'}（{label}）{link}", 'warning')
+        link = self.public_link(item, own_permalink)
+        self.say(f"需要人工跟進 {mask_name(item.get('username'))}（{label}）{link}", 'warning')
 
     def wait_to_send(self):
         for _ in range(4):
@@ -562,12 +590,12 @@ class Runner:
     def send(self, kind_type, item, text, reason, human):
         row = self.base_row(kind_type, item, text, reason, human)
         label = C.REASON_LABEL.get(reason, reason)
-        who = item.get('username') or 'unknown'
+        who = mask_name(item.get('username'))
         if self.dry_run or self.preview_only:
             row['action'] = 'dry_run'
             row['dry_run'] = True
             self.persist(row)
-            self.say(f"dry-run {kind_type} @{who}（{label}）：{text} ← {item.get('permalink') or item['source_id']}")
+            self.say(f"dry-run {kind_type} {who}（{label}）：{text} ← {self.public_link(item)}")
             if human:
                 self.flag(item, reason)
             return True
@@ -587,7 +615,7 @@ class Runner:
             row['dry_run'] = True
             self.persist(row)
             self.say(f'送出時發現缺少 {error.scope}，這則和後面的都只模擬', 'notice')
-            self.say(f"dry-run {kind_type} @{who}（{label}）：{text} ← {item.get('permalink') or item['source_id']}")
+            self.say(f"dry-run {kind_type} {who}（{label}）：{text} ← {self.public_link(item)}")
             return True
         except PostError as error:
             uncertain = str(error).startswith('container ')
@@ -597,10 +625,10 @@ class Runner:
             row['note'] = str(error)[:300]
             if uncertain:
                 self.persist(row)
-                self.say(f"@{who} 這則可能已建立容器但未確認發出，不再自動重試：{error}", 'warning')
+                self.say(f"{who} 這則可能已建立容器但未確認發出，不再自動重試：{error}", 'warning')
                 return False
             self.persist(row)
-            self.say(f"@{who} 送出失敗，下一輪再試：{error}", 'warning')
+            self.say(f"{who} 送出失敗，下一輪再試：{error}", 'warning')
             return False
         row['action'] = 'posted'
         row['dry_run'] = False
@@ -609,9 +637,9 @@ class Runner:
         self.persist(row)
         self.last_post_at = self.now()
         verb = '回覆' if kind_type == 'reply' else '留言'
-        self.say(f'已{verb} @{who}（{label}）：{text} → {permalink or media_id}')
+        self.say(f'已{verb} {who}（{label}）：{text} → {permalink or media_id}')
         if human:
-            self.flag(item, reason)
+            self.flag(item, reason, permalink)
         if self._halt is not None:
             raise self._halt
         return True
@@ -626,7 +654,7 @@ class Runner:
             row['dry_run'] = False
         self.persist(row)
         label = C.REASON_LABEL.get(reason, reason)
-        self.say(f"略過 @{item.get('username') or 'unknown'}（{label}）{item.get('permalink') or item['source_id']}")
+        self.say(f"略過 {mask_name(item.get('username'))}（{label}）{self.public_link(item)}")
         if human:
             self.flag(item, reason)
 
@@ -826,7 +854,7 @@ class Runner:
                 block = C.comment_block_reason(
                     self.history + self.rows,
                     day=self.now().date().isoformat(),
-                    author=normalized['username'],
+                    author=self.author_key(normalized['username']),
                     source_id=source_id,
                     run_count=self.comment_count,
                 )
@@ -944,9 +972,8 @@ class Runner:
         if self.skip_tallies:
             detail = '，'.join(f"{C.REASON_LABEL.get(key, key)} {value}" for key, value in sorted(self.skip_tallies.items()))
             self.say(f'關鍵字略過：{detail}')
-        humans = [row for row in self.rows if row.get('needs_human')]
-        if humans:
-            self.say(f'需要人工跟進 {len(humans)} 則（見上方警告）', 'warning')
+        if self.human_count:
+            self.say(f'需要人工跟進 {self.human_count} 則（見上方警告）', 'warning')
 
     def run(self, dry_run=False):
         mask_secret(self.token, self.env)
