@@ -68,6 +68,20 @@ SLOGANS = ('用心守護每一天', '給寶寶最好的', '品質第一')
 SIMPLIFIED = ('宝宝', '妈妈', '这个', '没有', '什么', '谢谢')
 
 SAFE_FALLBACK = '這段好真實，拍拍你。'
+MAX_QUOTE_CHARS = 12
+FULLWIDTH_DIGITS = str.maketrans('０１２３４５６７８９', '0123456789')
+POLL_ANSWER_RE = re.compile(r'^(?:我選|選|我家|我|剩)?\s*([0-9０-９]{1,3})\s*(?:號|[%％])?\s*[!！。.~～]*$')
+LAUGH_RE = re.compile(r'^[哈呵嘿笑w]+(?:真的|啦|喔|欸)?$', re.I)
+POLL_OPTION_RE = re.compile(r'(?<![0-9])([1-9])\s*([^0-9\s：:，,。、？?]{2,10})')
+POLL_LINES = (
+    '{option}！記下來了 🦉',
+    '收到，{option}這組又多一位。',
+    '{option}的你，辛苦也恭喜。',
+)
+POLL_BARE_LINES = (
+    '收到你的數字，謝謝你來報到 🦉',
+    '收到！小鷹幫你記下來了。',
+)
 
 COMMERCE_TEXT = {
     'price': '這個想問的話，私訊或 LINE 跟我們說一聲就好。',
@@ -87,6 +101,21 @@ GENUINE_LINES = (
     '看到「{detail}」，新手時期真的會這樣。',
     '啊「{detail}」，拍拍你。',
     '「{detail}」好真實，笑完又有點心疼。',
+)
+GENUINE_PLAIN = (
+    '這個真的會，拍拍你。',
+    '被你說中了，小鷹在旁邊猛點頭 🦉',
+    '好有畫面，辛苦了。',
+    '懂，新手時期每天都這樣。',
+)
+LAUGH_LINES = (
+    '小鷹也跟著笑了 🦉',
+    '你笑了我們就放心了。',
+)
+COMMENT_PLAIN = (
+    '這段好熟悉，新手時期每天都在學。',
+    '被說中了，拍拍。',
+    '這也太日常了。',
 )
 COMMENT_LINES = (
     '「{detail}」這段好熟悉，新手時期每天都在學。',
@@ -373,24 +402,45 @@ def _clean_source(text):
     for word in JAPAN_CLAIMS + ('日本',):
         cleaned = cleaned.replace(word, '')
     cleaned = PRICE_RE.sub('', cleaned)
-    cleaned = re.sub(r'\s+', '', cleaned)
-    return cleaned
+    cleaned = re.sub(r'[ \t\u3000]+', ' ', cleaned)
+    cleaned = re.sub(r'(?<=[\u3400-\u9fff]) | (?=[\u3400-\u9fff])', '', cleaned)
+    return cleaned.strip()
 
 
 def concrete_detail(text):
-    """A short slice of the other person's words, with banned bits removed."""
+    """The other person's first clause, quoted whole, or '這段' when it is too long to quote.
+
+    A clause is never cut: a half sentence in quotes reads like a bot.
+    """
     cleaned = _clean_source(text)
-    match = re.search(r'\d+\s*(?:個月|個多月|歲|小時)', cleaned)
-    if match:
-        start = max(0, match.start() - 4)
-        detail = cleaned[start:match.end() + 2]
-    else:
-        chunk = re.split(r'[。！？!?,，、\n]', cleaned)[0]
-        detail = chunk[:12]
-    detail = detail.strip('「」"\'')
-    if not detail or not CJK_RE.search(detail) or validate_draft(f'「{detail}」好真實，拍拍。'):
+    chunk = re.split(r'[。！？!?,，、\n~～]', cleaned)[0].strip()
+    detail = chunk.strip('「」"\' ')
+    if (not detail or len(detail) > MAX_QUOTE_CHARS or not CJK_RE.search(detail) or LAUGH_RE.match(detail)
+            or validate_draft(f'「{detail}」好真實，拍拍。')):
         return '這段'
-    return detail[:18]
+    return detail
+
+
+def poll_answer(source_text, context):
+    """Return the option a bare-number comment picked on a 留言報數字 post, or None.
+
+    Returns '' when the comment is a bare number but the post lists no options.
+    """
+    reply = EMOJI_RE.sub('', source_text or '').strip()
+    match = POLL_ANSWER_RE.match(reply)
+    if not match:
+        return None
+    number = match.group(1).translate(FULLWIDTH_DIGITS)
+    post = context or ''
+    marker = post.rfind('留言報數字')
+    if marker < 0:
+        return None
+    segment = post[marker:].split('\n')[0]
+    options = dict(POLL_OPTION_RE.findall(segment.translate(FULLWIDTH_DIGITS)))
+    option = (options.get(number) or '').strip()
+    if option and not validate_draft(f'{option}！'):
+        return option
+    return ''
 
 
 def _line_from(templates, source_id, detail):
@@ -407,15 +457,27 @@ def fixed_text(kind, source_id, subtype=None):
     return None
 
 
-def template_text(kind, source_text, source_id, subtype=None):
+def template_text(kind, source_text, source_id, subtype=None, context=''):
     fixed = fixed_text(kind, source_id, subtype)
     if fixed:
         return fixed
+    if kind != 'comment':
+        option = poll_answer(source_text, context)
+        if option:
+            text = POLL_LINES[salt(source_id) % len(POLL_LINES)].format(option=option)
+            if not validate_draft(text):
+                return text
+        if option is not None:
+            return POLL_BARE_LINES[salt(source_id) % len(POLL_BARE_LINES)]
+    if LAUGH_RE.match(_clean_source(source_text).replace(' ', '')):
+        return LAUGH_LINES[salt(source_id) % len(LAUGH_LINES)]
     detail = concrete_detail(source_text)
+    if detail == '這段':
+        plain = COMMENT_PLAIN if kind == 'comment' else GENUINE_PLAIN
+        text = plain[salt(source_id) % len(plain)]
+        return text if not validate_draft(text) else SAFE_FALLBACK
     templates = COMMENT_LINES if kind == 'comment' else GENUINE_LINES
     text = _line_from(templates, source_id, detail)
-    if validate_draft(text):
-        text = _line_from(templates, source_id, '這段')
     if validate_draft(text):
         return SAFE_FALLBACK
     return text
@@ -549,7 +611,7 @@ def keyword_order(now):
     return KEYWORDS[start:] + KEYWORDS[:start]
 
 
-def build_prompt(kind, source_text, detail):
+def build_prompt(kind, source_text, detail, context=''):
     role = '回覆' if kind != 'comment' else '留言'
     banned = '、'.join((
         '您', '感謝您的分享', '非常理解您的感受', '希望對您有幫助', '每個寶寶都是獨一無二的',
@@ -557,10 +619,15 @@ def build_prompt(kind, source_text, detail):
         'AI', '抗菌', '防蟎', '低敏', '保證',
     ))
     source = (source_text or '').replace('\n', ' ')[:400]
+    post = (context or '').replace('\n', ' ')[:600]
+    post_line = f'這則留言回覆的貼文：{post}\n' if post else ''
+    focus = f'請接住這個具體細節：「{detail}」。\n' if detail != '這段' else '請接住對方講的重點。\n'
     return (
         f'你是 HiBOU @lovehibou 的社群編輯，用台灣人平常講話的繁體中文寫一則 Threads {role}。\n'
+        f'{post_line}'
         f'對方原文：{source}\n'
-        f'請接住這個具體細節：「{detail}」。\n'
+        f'{focus}'
+        '對方如果只留一個數字，是在回答貼文的投票，要接住他選的那一項。\n'
         '規則：1 到 2 句短句；最多 1 個 emoji；開頭要自然，不要每則都一樣；'
         '不要客服腔、不要條列、不要口號、不要推銷。'
         f'禁止出現：{banned}。\n'
