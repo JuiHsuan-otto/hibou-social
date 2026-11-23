@@ -166,7 +166,7 @@ def gemini_complete(prompt, key, model):
     url = f'https://generativelanguage.googleapis.com/v1beta/models/{safe_model}:generateContent'
     body = json.dumps({
         'contents': [{'role': 'user', 'parts': [{'text': prompt}]}],
-        'generationConfig': {'temperature': 0.8, 'maxOutputTokens': 256},
+        'generationConfig': {'temperature': 0.8, 'maxOutputTokens': 2048},
     }).encode()
     request = urllib.request.Request(url, data=body, method='POST', headers={
         'Content-Type': 'application/json',
@@ -176,7 +176,12 @@ def gemini_complete(prompt, key, model):
         with urllib.request.urlopen(request, timeout=30) as response:
             payload = json.loads(response.read() or b'{}')
     except urllib.error.HTTPError as e:
-        raise LlmError(f'gemini http {e.code}') from None
+        detail = ''
+        try:
+            detail = (json.loads(e.read() or b'{}').get('error') or {}).get('message') or ''
+        except (ValueError, AttributeError, OSError):
+            pass
+        raise LlmError(redact(f'gemini http {e.code} {detail}'.strip())[:200]) from None
     except urllib.error.URLError:
         raise LlmError('gemini network') from None
     candidates = payload.get('candidates') or []
@@ -185,7 +190,9 @@ def gemini_complete(prompt, key, model):
         parts = ((candidates[0].get('content') or {}).get('parts')) or []
     texts = [part.get('text', '') for part in parts if isinstance(part, dict) and part.get('text')]
     if not texts:
-        raise LlmError('gemini empty')
+        reason = candidates[0].get('finishReason') if candidates and isinstance(candidates[0], dict) else None
+        blocked = (payload.get('promptFeedback') or {}).get('blockReason')
+        raise LlmError(f'gemini empty ({reason or blocked or "no candidates"})')
     return '\n'.join(texts).strip()
 
 
@@ -538,9 +545,9 @@ class Runner:
             for _ in range(3):
                 try:
                     text = unwrap_draft(self.complete(prompt))
-                except LlmError:
+                except LlmError as error:
                     self.llm_ready = False
-                    self.say('Gemini 這次無法產生文案，改用固定句型', 'warning')
+                    self.say(f'Gemini 這次無法產生文案（{self.scrub(str(error))}），改用固定句型', 'warning')
                     break
                 problems = C.validate_draft(text)
                 if not problems:
