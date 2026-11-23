@@ -548,7 +548,7 @@ def _posted_comment(row, day=None, author=None, source_id=None):
         return False
     if day is not None and not str(row.get('ts') or '').startswith(day):
         return False
-    if author is not None and str(row.get('other_account') or '').lstrip('@').lower() != author.lower():
+    if author is not None and (not author or str(row.get('author_key') or '') != author):
         return False
     if source_id is not None and str(row.get('source_id') or '') != str(source_id):
         return False

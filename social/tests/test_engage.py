@@ -260,23 +260,26 @@ class CopyTests(unittest.TestCase):
         for index in range(40):
             rows.append({
                 'ts': f'{day}T09:00:00+08:00', 'type': 'comment', 'action': 'posted',
-                'dry_run': False, 'source_id': str(50000 + index), 'other_account': f'user{index % 30}',
+                'dry_run': False, 'source_id': str(50000 + index), 'author_key': f'k{index % 30}',
             })
         self.assertEqual(C.comment_block_reason(
-            rows, day=day, author='newbie', source_id='60001', run_count=0,
+            rows, day=day, author='knewbie', source_id='60001', run_count=0,
         ), 'day_cap')
         rows = [
             {'ts': f'{day}T09:00:00+08:00', 'type': 'comment', 'action': 'posted',
-             'source_id': '60001', 'other_account': 'maya', 'dry_run': False},
+             'source_id': '60001', 'author_key': 'kmaya', 'dry_run': False},
             {'ts': f'{day}T10:00:00+08:00', 'type': 'comment', 'action': 'posted',
-             'source_id': '60002', 'other_account': 'maya', 'dry_run': False},
+             'source_id': '60002', 'author_key': 'kmaya', 'dry_run': False},
         ]
         self.assertEqual(C.comment_block_reason(
-            rows, day=day, author='maya', source_id='60003', run_count=0,
+            rows, day=day, author='kmaya', source_id='60003', run_count=0,
         ), 'author_cap')
         self.assertEqual(C.comment_block_reason(
-            rows, day=day, author='other', source_id='60001', run_count=0,
+            rows, day=day, author='kother', source_id='60001', run_count=0,
         ), 'same_post')
+        # rows written before author_key existed never match, and an empty key never matches
+        old = [dict(row, author_key='') for row in rows]
+        self.assertIsNone(C.comment_block_reason(old, day=day, author='', source_id='60003', run_count=0))
         self.assertEqual(C.comment_block_reason(
             [], day=day, author='other', source_id='60009', run_count=8,
         ), 'run_cap')
@@ -448,20 +451,27 @@ class EngageRunTests(unittest.TestCase):
         self.assertNotIn('19006', targets)
         self.assertTrue(any(seconds >= 60 for seconds in sleeps))
         output = self.stdout.getvalue()
-        self.assertIn('需要人工跟進 @worry_parent', output)
+        self.assertIn('需要人工跟進 @w***', output)
         self.assertNotIn(TOKEN, output)
         rows = self.log_rows()
         posted = [row for row in rows if row['action'] == 'posted']
         self.assertEqual([row['source_id'] for row in posted], targets)
         for row in posted:
             self.assertEqual(row['type'], 'reply')
-            self.assertTrue(row['source_url'].startswith('https://www.threads.com/'))
-            self.assertTrue(row['other_account'])
+            self.assertEqual(len(row['author_key']), 16)
             self.assertTrue(row['text'])
             self.assertTrue(row['media_id'])
             self.assertTrue(row['permalink'].startswith('https://www.threads.com/@lovehibou/'))
         self.assertTrue(any(row['source_id'] == '19002' and row['action'] == 'skipped' for row in rows))
-        self.assertTrue(any(row['needs_human'] and row['source_id'] == '19004' for row in rows))
+        # The log is committed to a public repo: no other account names, their links or content labels.
+        dumped = json.dumps(rows, ensure_ascii=False) + output
+        for name in ('mama_lin', 'spammer', 'gift_parent', 'worry_parent', 'dad_chen'):
+            self.assertNotIn(name, dumped)
+        for row in rows:
+            for field in ('other_account', 'source_url', 'root_url', 'needs_human'):
+                self.assertNotIn(field, row)
+            self.assertIsNone(row['reason'])
+        self.assertIn('需要人工跟進 @w***（需人工）https://www.threads.com/@lovehibou/', output)
         for _method, path, params, token in api.calls:
             self.assertEqual(token, TOKEN)
             if path != '/debug_token':
@@ -482,7 +492,7 @@ class EngageRunTests(unittest.TestCase):
         self.assertEqual(api.creates, 0)
         output = self.stdout.getvalue()
         self.assertIn('有送禮日的話，先用 LINE 問我們', output)
-        self.assertIn('需要人工跟進 @worry_parent', output)
+        self.assertIn('需要人工跟進 @w***', output)
         self.assertEqual(self.log_rows(), [])
         self.assertNotIn(TOKEN, output)
 
