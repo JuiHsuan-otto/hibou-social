@@ -1,0 +1,104 @@
+# Replies to new comments and mentions on @lovehibou, and (only when the token
+# has threads_keyword_search) comments on public parenting posts.
+# The token exists only as the HIBOU_THREADS_TOKEN repository secret.
+#
+# Schedule is Asia/Taipei, expressed in UTC. GitHub cron can run 5–30 minutes
+# late; these hours stay clear of the 07:30 / 12:30 / 18:30 / 21:30 quiet windows:
+#   09:00 Taipei  01:00 UTC
+#   11:00 Taipei  03:00 UTC
+#   14:00 Taipei  06:00 UTC
+#   16:00 Taipei  08:00 UTC
+#   19:00 Taipei  11:00 UTC
+#   22:00 Taipei  14:00 UTC
+#
+# Live posting requires the repository variable THREADS_ENGAGE_ENABLED=true.
+# Any other value, including an unset variable, forces a dry-run.
+# A manual run also stays a dry-run unless its dry_run input is false.
+
+name: threads-engage
+
+on:
+  schedule:
+    - cron: "0 1 * * *"
+    - cron: "0 3 * * *"
+    - cron: "0 6 * * *"
+    - cron: "0 8 * * *"
+    - cron: "0 11 * * *"
+    - cron: "0 14 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只模擬，不留言"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: hibou-threads-engage
+  cancel-in-progress: false
+
+jobs:
+  run:
+    name: engage
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Mask secrets
+        env:
+          HIBOU_THREADS_TOKEN: ${{ secrets.HIBOU_THREADS_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${HIBOU_THREADS_TOKEN}" ]; then echo "::add-mask::${HIBOU_THREADS_TOKEN}"; fi
+          if [ -n "${GEMINI_API_KEY}" ]; then echo "::add-mask::${GEMINI_API_KEY}"; fi
+          if [ -n "${GOOGLE_API_KEY}" ]; then echo "::add-mask::${GOOGLE_API_KEY}"; fi
+
+      - name: Reply and comment
+        env:
+          HIBOU_THREADS_TOKEN: ${{ secrets.HIBOU_THREADS_TOKEN }}
+          HIBOU_THREADS_USERNAME: ${{ vars.HIBOU_THREADS_USERNAME }}
+          HIBOU_THREADS_USER_ID: ${{ vars.HIBOU_THREADS_USER_ID }}
+          THREADS_ENGAGE_ENABLED: ${{ vars.THREADS_ENGAGE_ENABLED }}
+          THREADS_ENGAGE_DISCOVERY: ${{ vars.THREADS_ENGAGE_DISCOVERY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          HIBOU_ENGAGE_LLM_PROVIDER: ${{ vars.HIBOU_ENGAGE_LLM_PROVIDER }}
+          HIBOU_ENGAGE_GEMINI_MODEL: ${{ vars.HIBOU_ENGAGE_GEMINI_MODEL }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          ENGAGEMENT_PREVIEW_PATH: ${{ runner.temp }}/engagement-preview.jsonl
+        run: |
+          set -euo pipefail
+          live=false
+          if [ "${THREADS_ENGAGE_ENABLED}" = "true" ]; then
+            if [ "$EVENT_NAME" = "schedule" ]; then
+              live=true
+            elif [ "$INPUT_DRY_RUN" = "false" ]; then
+              live=true
+            fi
+          fi
+          args=()
+          if [ "$live" != "true" ]; then
+            args+=(--dry-run)
+          fi
+          python3 social/engage.py "${args[@]}"
+
+      - name: Upload engagement log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: engagement-${{ github.run_id }}
+          path: ${{ runner.temp }}/engagement-preview.jsonl
+          if-no-files-found: ignore

@@ -3,7 +3,7 @@
 這個資料夾讓 GitHub 用 Threads 官方介面，替 @lovehibou 發文。全程不需要打開 Chrome，所以就算 Chrome 被切到別的帳號，也不會發錯或發不出去。
 
 - 金鑰（token）只放在 GitHub 的加密設定裡，不寫進任何檔案，也不會出現在畫面上。
-- 回留言、釘選、在別人的貼文底下留言，還是在 Mac 上用 Chrome 處理，不歸這裡管。
+- 回留言、在別人的貼文底下留言，由 `threads-engage` 處理（見第九節）。釘選還是要人工在 App 裡做。
 
 ## 一、緊急停止（最重要）
 
@@ -102,6 +102,11 @@ bash social/refresh_token.sh
 | Variable | `HIBOU_THREADS_USER_ID` | 第一次健康檢查印出的 id |
 | Variable | `HIBOU_THREADS_TOKEN_ISSUED` | token 產生或續期的日期 |
 | Variable | `THREADS_PUBLISH_ENABLED` | 總開關：`true` 才會真的發，其他值一律只模擬 |
+| Variable | `THREADS_ENGAGE_ENABLED` | 互動總開關：`true` 才會真的回覆或留言，其他值一律只模擬 |
+| Variable | `THREADS_ENGAGE_DISCOVERY` | 關鍵字留言：`false` 強制關閉；`true` 就算權限清單讀不到也會試；不設的話，token 有 `threads_keyword_search` 才開 |
+| Secret | `GEMINI_API_KEY` | 選用。有這把金鑰時，一般回覆和關鍵字留言用 Gemini 寫。沒有就用固定句型。也可以改放 `GOOGLE_API_KEY` |
+| Variable | `HIBOU_ENGAGE_LLM_PROVIDER` | 選用。`gemini`、`template` 或留空（有金鑰就用 Gemini） |
+| Variable | `HIBOU_ENGAGE_GEMINI_MODEL` | 選用。預設 `gemini-2.5-flash` |
 
 **名稱刻意和 DeepTutor 的 `THREADS_USER_TOKEN` 不同**，避免貼錯地方。
 
@@ -121,5 +126,40 @@ bash social/refresh_token.sh
 - `validate.py`：佇列檢查，CI 和發文前都會跑。
 - `import_schedule.py`：把 Mac 上 `schedule.json` 的睡前文轉進佇列。預設只印出、不寫入；加 `--write` 才寫。它只讀 `schedule.json`，不會改那個檔。
 - `tests/`：用假的 Threads API 測試，不連網路：`python3 -m unittest discover -s social/tests -v`。
-- 機器人寫回 `main` 的只有 `social/queue.json` 和 `social/receipts/`。如果剛好有別人同時推送，程式會先抓最新的 `main`，再把自己那一筆狀態重新套上去，不會手動合併 JSON。
+- 發文流程寫回 `main` 的是 `social/queue.json` 和 `social/receipts/`。如果剛好有別人同時推送，程式會先抓最新的 `main`，再把自己那一筆狀態重新套上去，不會手動合併 JSON。
+- 互動流程另外寫 `social/engagement/YYYY-MM-DD.jsonl`。Insights 寫 `social/metrics/`。
 - `social/receipts/YYYY-MM.jsonl`：每次發文、回覆、略過、失敗都會加一行，只增不改。
+- `engage.py`、`engage_copy.py`：回覆與關鍵字留言。規則與開關見第九節。
+- `social/engagement/YYYY-MM-DD.jsonl`：互動紀錄，只增不改。dry-run 不寫這個檔。
+
+## 九、回覆與關鍵字留言（`threads-engage`）
+
+這條流程做兩件事：
+
+1. **回覆（排程一定會跑）**：最近 14 天 @lovehibou 貼文底下的新留言、別人回我們留在別處的留言，以及提及 @lovehibou 的貼文。同一則不會回第二次。每一輪最多回 12 則，剩下的下一輪再處理。
+2. **關鍵字留言（預設關，token 有權限才開）**：搜尋新手爸媽、懷孕、彌月、育兒日常、寶寶好物、媽媽心情、親子生活，在別人的文字貼文下留言。
+
+分類：
+
+| 對方在說什麼 | 我們怎麼做 |
+|---|---|
+| 一般聊天 | 接住對方講的一個具體細節，用台灣口語回 1 到 2 句 |
+| 價格、尺寸、怎麼買、庫存、交期、刺繡 | 請對方私訊或 LINE，不在留言裡報價、不講庫存或交期 |
+| 送禮日、趕不趕得及 | 原文就是「有送禮日的話，先用 LINE 問我們」 |
+| 抱怨、安全、醫療 | 短短一句請對方私訊，並在這次執行標成需要人工跟進 |
+| 垃圾、詐騙、辱罵 | 不回，寫進紀錄 |
+| 傷慟 | 不自動回，標成需要人工跟進 |
+
+關鍵字留言會跳過：政治、爭議、醫療求助、傷慟、以照片或影片為主的貼文（無法確認是不是未成年人）、抽獎、詐騙、業配。每輪最多 8 則，每天最多 40 則，同一人每天最多 2 則，同一則貼文只留一次。
+
+共同規則：每則至少間隔 60 秒；避開台北時間 07:30、12:30、18:30、21:30 前後 5 分鐘。碰到速率限制、垃圾訊息警告、留言被隱藏或社群政策錯誤，這輪立刻停止。文案在送出前會擋掉網址、價格、療效、庫存交期、日本製／日本設計／日本熱銷、hashtag，以及客服腔。
+
+權限不夠時這輪只會說明缺什麼，不會把那些留言記成已回覆。需要的權限、重新產生 token、打開正式送出的步驟寫在這個流程的 pull request 說明裡。
+
+**什麼時候會跑（台北時間）：** 09:00、11:00、14:00、16:00、19:00、22:00。GitHub 可能晚 5 到 30 分鐘。
+
+**總開關沒打開時，每一次都只模擬。** 模擬會把預計送出的句子寫進 Actions 摘要和 artifact，不會寫進 `social/engagement/`，所以之後打開開關仍會真的回。
+
+手動執行：Actions → **threads-engage** → **Run workflow**。`dry_run` 預設是開的。要真的送出，總開關要是 `true`，而且 `dry_run` 要關掉，並且從 `main` 跑。
+
+緊急停止：把 `THREADS_ENGAGE_ENABLED` 改成 `false`，或到 Actions 把 **threads-engage** 停用。已經送出的留言不會自動刪。
