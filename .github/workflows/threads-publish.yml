@@ -14,6 +14,12 @@
 # Kill switch: unless the repository variable THREADS_PUBLISH_ENABLED is "true",
 # every publish run is forced to dry-run (the one exception is a manual run of a
 # test entry that Otto approved).
+#
+# The same run also looks at Facebook and Instagram entries in social/queue.json.
+# Those stay a dry-run unless FB_PUBLISH_ENABLED / IG_PUBLISH_ENABLED is "true"
+# and the workflow is running on main. A missing page token or Instagram id
+# skips that platform and does not change the Threads posts. The cron above
+# is the Threads schedule and is not used to add new posting times.
 
 name: threads-publish
 
@@ -64,6 +70,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Mask Meta secrets
+        env:
+          HIBOU_FB_PAGE_TOKEN: ${{ secrets.HIBOU_FB_PAGE_TOKEN }}
+          HIBOU_IG_USER_ID: ${{ secrets.HIBOU_IG_USER_ID }}
+        run: |
+          set -euo pipefail
+          if [ -n "${HIBOU_FB_PAGE_TOKEN}" ]; then echo "::add-mask::${HIBOU_FB_PAGE_TOKEN}"; fi
+          if [ -n "${HIBOU_IG_USER_ID}" ]; then echo "::add-mask::${HIBOU_IG_USER_ID}"; fi
+
       - name: Run
         env:
           HIBOU_THREADS_TOKEN: ${{ secrets.HIBOU_THREADS_TOKEN }}
@@ -71,6 +86,11 @@ jobs:
           HIBOU_THREADS_USER_ID: ${{ vars.HIBOU_THREADS_USER_ID }}
           HIBOU_THREADS_TOKEN_ISSUED: ${{ vars.HIBOU_THREADS_TOKEN_ISSUED }}
           THREADS_PUBLISH_ENABLED: ${{ vars.THREADS_PUBLISH_ENABLED }}
+          HIBOU_FB_PAGE_TOKEN: ${{ secrets.HIBOU_FB_PAGE_TOKEN }}
+          HIBOU_IG_USER_ID: ${{ secrets.HIBOU_IG_USER_ID }}
+          HIBOU_FB_PAGE_ID: ${{ vars.HIBOU_FB_PAGE_ID }}
+          FB_PUBLISH_ENABLED: ${{ vars.FB_PUBLISH_ENABLED }}
+          IG_PUBLISH_ENABLED: ${{ vars.IG_PUBLISH_ENABLED }}
           EVENT_NAME: ${{ github.event_name }}
           EVENT_SCHEDULE: ${{ github.event.schedule }}
           INPUT_MODE: ${{ inputs.mode }}
