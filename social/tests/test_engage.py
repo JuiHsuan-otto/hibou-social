@@ -211,6 +211,33 @@ class CopyTests(unittest.TestCase):
             self.assertEqual(C.validate_draft(text), [], text)
             self.assertIn('三個月', text)
 
+    def test_poll_number_answers_pick_the_option(self):
+        post = ('11、12 月出生的寶寶，育兒津貼有一個 60 天關卡。\n'
+                '留言報數字：你家寶寶 1 十一月出生 2 十二月出生 3 還在肚子裡 4 已經會跑了')
+        for answer, option in (('2', '十二月出生'), ('我選3！', '還在肚子裡'), ('４', '已經會跑了')):
+            for sid in ('a', 'b', 'c'):
+                text = C.template_text('genuine', answer, sid, None, post)
+                self.assertIn(option, text)
+                self.assertEqual(C.validate_draft(text), [], text)
+        battery = '小鷹家電量報告。\n留言報數字：你現在剩幾 %？'
+        self.assertIn(C.template_text('genuine', '剩8%', 'a', None, battery), C.POLL_BARE_LINES)
+        self.assertNotIn(C.template_text('genuine', '2', 'a', None, '沒有投票'), C.POLL_BARE_LINES)
+
+    def test_long_comment_is_never_quoted_half(self):
+        source = '8% 對 100% 這個差距太真實😂\n小鷹假裝成抱枕最聰明 至少還能充一點電'
+        self.assertEqual(C.concrete_detail(source), '這段')
+        for sid in ('a', 'b', 'c', 'd'):
+            text = C.template_text('genuine', source, sid)
+            self.assertNotIn('「', text)
+            self.assertEqual(C.validate_draft(text), [], text)
+        self.assertEqual(C.concrete_detail('寶寶 3 個月還在夜醒，我快不行了'), '寶寶3個月還在夜醒')
+        self.assertIn(C.template_text('genuine', '哈哈哈哈', 'a'), C.LAUGH_LINES)
+
+    def test_prompt_carries_the_post_being_answered(self):
+        prompt = C.build_prompt('genuine', '2', C.concrete_detail('2'), '留言報數字：1 十一月 2 十二月')
+        self.assertIn('這則留言回覆的貼文：留言報數字', prompt)
+        self.assertNotIn('「這段」', prompt)
+
     def test_dedupe_ignores_dry_run_and_stopped(self):
         rows = [
             {'source_id': '1', 'action': 'posted', 'dry_run': False},

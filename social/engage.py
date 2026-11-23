@@ -528,13 +528,13 @@ class Runner:
             return self._complete(prompt)
         return gemini_complete(prompt, self.gemini_key, self.model)
 
-    def compose(self, kind, source_text, source_id, subtype):
+    def compose(self, kind, source_text, source_id, subtype, context=''):
         fixed = C.fixed_text(kind, source_id, subtype)
         if fixed is not None:
             problems = C.validate_draft(fixed)
             return (fixed, []) if not problems else (None, problems)
         if self.llm_ready:
-            prompt = C.build_prompt(kind, source_text, C.concrete_detail(source_text))
+            prompt = C.build_prompt(kind, source_text, C.concrete_detail(source_text), context)
             for _ in range(3):
                 try:
                     text = unwrap_draft(self.complete(prompt))
@@ -546,7 +546,7 @@ class Runner:
                 if not problems:
                     return text, []
                 prompt += '\n上一則沒通過：' + '、'.join(problems) + '\n請只重寫留言本身。'
-        text = C.template_text(kind, source_text, source_id, subtype)
+        text = C.template_text(kind, source_text, source_id, subtype, context)
         problems = C.validate_draft(text)
         if problems:
             return None, problems
@@ -635,7 +635,7 @@ class Runner:
         if not C.should_reply(name):
             self.discard('reply', item, name, human=C.needs_human(name))
             return
-        text, problems = self.compose(name, item.get('text'), item['source_id'], kind.get('subtype'))
+        text, problems = self.compose(name, item.get('text'), item['source_id'], kind.get('subtype'), item.get('context') or '')
         if text is None:
             self.discard('reply', item, 'guardrail')
             self.say(f"文案未過，不送出：{'、'.join(problems)}", 'warning')
@@ -643,7 +643,7 @@ class Runner:
         self.reply_count += 1
         self.send('reply', item, text, name, C.needs_human(name))
 
-    def absorb(self, root_id, root_url, into):
+    def absorb(self, root_id, root_url, into, root_text=''):
         try:
             items = self.paged(f'/{root_id}/conversation', {'fields': FIELDS, 'limit': '50'})
         except MissingScope:
@@ -670,6 +670,7 @@ class Runner:
                 'text': item.get('text') or '',
                 'permalink': item.get('permalink') or '',
                 'root_url': root_url or '',
+                'context': root_text or '',
                 'hide_status': item.get('hide_status'),
                 'ts': when.isoformat() if when else '',
             }
@@ -697,7 +698,7 @@ class Runner:
             if not post_id:
                 continue
             try:
-                self.absorb(post_id, post.get('permalink') or '', found)
+                self.absorb(post_id, post.get('permalink') or '', found, post.get('text') or '')
             except MissingScope as error:
                 self.say(f'token 沒有 {error.scope}，這輪不讀留言串', 'notice')
                 return []
@@ -715,7 +716,7 @@ class Runner:
             if not reply_id:
                 continue
             try:
-                self.absorb(reply_id, reply.get('permalink') or '', found)
+                self.absorb(reply_id, reply.get('permalink') or '', found, reply.get('text') or '')
             except MissingScope as error:
                 self.say(f'token 沒有 {error.scope}，讀不到我們留言底下的回覆', 'notice')
                 break
@@ -737,7 +738,7 @@ class Runner:
                     continue
                 if mention.get('has_replies') is True:
                     try:
-                        self.absorb(source_id, mention.get('permalink') or '', found)
+                        self.absorb(source_id, mention.get('permalink') or '', found, mention.get('text') or '')
                     except MissingScope as error:
                         self.say(f'token 沒有 {error.scope}，這輪不讀提及串', 'notice')
                         break
