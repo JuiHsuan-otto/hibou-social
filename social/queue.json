@@ -1947,7 +1947,7 @@
     "platform": "threads",
     "slot": "morning",
     "publish_at": "2026-11-25T07:05:00+08:00",
-    "status": "approved",
+    "status": "publishing",
     "text": "送彌月禮最怕的，是買了對方家裡已經有三件。\n先問一句「最近每天都在洗什麼」，再決定衣服尺寸和要不要繡名字，比用猜的準很多。\nhttps://www.ihibou.com/articles/parenting-baby-gift-guide",
     "image_url": null,
     "image_sha256": null,
@@ -1962,7 +1962,8 @@
     "media_type": "TEXT",
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
-    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
+    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖",
+    "run_id": "45508245517"
   },
   {
     "id": "2026-11-25-facebook-parenting-baby-gift-guide",
