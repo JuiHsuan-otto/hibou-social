@@ -2003,7 +2003,7 @@
     "platform": "instagram",
     "slot": "noon",
     "publish_at": "2026-11-25T12:25:00+08:00",
-    "status": "publishing",
+    "status": "published",
     "text": "送彌月禮，挑對方每天真的用得到的。\n衣服尺寸怎麼抓、名字繡在哪、包裝和內容物怎麼確認，小鷹整理成一篇。\n連結放在簡介。",
     "image_url": "https://www.ihibou.com/products/images/giftbox_romper/giftbox_romper_cover.jpg",
     "image_sha256": null,
@@ -2019,7 +2019,12 @@
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
     "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖",
-    "run_id": "45555225951"
+    "run_id": "45555225951",
+    "container_id": "18475338151189785",
+    "published_id": "18094335407696547",
+    "permalink": "https://www.instagram.com/p/DgJzU8gIO0v/",
+    "published_at": "2026-11-25T13:41:10+08:00",
+    "error": null
   },
   {
     "id": "2026-11-30-threads-parenting-windshield-usage",
