@@ -748,9 +748,11 @@
     "self_reply": null,
     "pin_after_post": false,
     "source": "threads_drafts_20261116_1129",
-    "status": "approved",
+    "status": "skipped",
     "approved_by": "otto",
-    "approved_at": "2026-11-13T22:34:00+08:00"
+    "approved_at": "2026-11-13T22:34:00+08:00",
+    "note": "missed window",
+    "run_id": "45639827954"
   },
   {
     "id": "2026-11-26-noon-owl-ep03-s3",
