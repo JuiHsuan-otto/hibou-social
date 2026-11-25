@@ -1975,7 +1975,7 @@
     "platform": "facebook",
     "slot": "noon",
     "publish_at": "2026-11-25T12:20:00+08:00",
-    "status": "publishing",
+    "status": "published",
     "text": "準備送彌月禮，先問對方一句：家裡現在最缺什麼？\n天天會洗的小巾、送到那天穿得下的尺寸、名字要繡在哪，這篇照順序整理好了。有送禮日的話，先用 LINE 問我們",
     "image_url": null,
     "image_sha256": null,
@@ -1991,7 +1991,12 @@
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
     "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖",
-    "run_id": "45555225951"
+    "run_id": "45555225951",
+    "container_id": null,
+    "published_id": "704258603022785_1592738539554712",
+    "permalink": "https://www.facebook.com/1591363026358930/posts/1592738539554712",
+    "published_at": "2026-11-25T13:40:55+08:00",
+    "error": null
   },
   {
     "id": "2026-11-25-instagram-parenting-baby-gift-guide",
