@@ -2436,7 +2436,7 @@
     "platform": "threads",
     "slot": "evening",
     "publish_at": "2026-11-26T18:05:00+08:00",
-    "status": "approved",
+    "status": "skipped",
     "text": "冷氣團一來，半夜最常做的事，就是走到床邊想再幫寶寶蓋一條。\n先別急，摸一下後頸。溫溫的就剛好，濕濕的反而是穿太多了。\n真的要加，就加在身上：多一件薄的，或換一件穿著式睡袋，床上照樣空空的。\nhttps://www.ihibou.com/articles/baby-winter-sleep-warmth?utm_source=threads&utm_medium=organic_social&utm_campaign=threads_articles_20261124",
     "image_url": null,
     "image_sha256": null,
@@ -2451,7 +2451,8 @@
     "media_type": "TEXT",
     "approved_by": "grok-bot",
     "approved_at": "2026-11-24T11:10:00+08:00",
-    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段）"
+    "note": "missed window",
+    "run_id": "45839416575"
   },
   {
     "id": "2026-12-21-facebook-baby-winter-sleep-warmth",
