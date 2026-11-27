@@ -32,7 +32,9 @@ jobs:
           # The [..] brackets keep this line from matching itself.
           # Scan this commit and its ancestors (including main). Leftover topic
           # branches are ignored, so a superseded branch cannot fail this check.
-          if git log -p HEAD | grep -inE 'E[A]A[A-Za-z0-9]{20,}|T[H]Q[A-Za-z0-9]{20,}|access_token[=]'; then
+          # --format= drops "commit <sha>" headers. A pull-request merge commit
+          # whose SHA starts with eaa or thq matches the token pattern below.
+          if git log -p --format= HEAD | grep -inE 'E[A]A[A-Za-z0-9]{20,}|T[H]Q[A-Za-z0-9]{20,}|access_token[=]'; then
             echo "::error::something that looks like a token is in the git history"; exit 1
           fi
 
