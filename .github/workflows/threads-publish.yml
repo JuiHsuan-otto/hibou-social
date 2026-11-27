@@ -2,14 +2,28 @@
 # official Threads API. No browser is involved; the token exists only as the
 # HIBOU_THREADS_TOKEN repository secret.
 #
-# Schedule (GitHub cron is UTC and can run 5–30 minutes late, so every slot has
-# a catch-up run; the duplicate checks in publish.py make re-runs harmless):
-#   07:10 Taipei  check only (account, token age, quota, queue health)
-#   07:45 / 12:45 / 18:45 Taipei  catch-up for the morning / noon / 18:30 evening posts
-#   20:10 Taipei  publish for 20:00 evening posts (90-minute window closes 21:30;
-#                 the 21:32 bedtime run is already past that window)
-#   20:40 Taipei  catch-up if 20:10 was delayed or dropped (20:40 + 30 min is 21:10)
-#   21:32 Taipei  bedtime post;  22:05 Taipei  bedtime catch-up
+# Schedule (GitHub cron is UTC). Runs are often 5–30 minutes late, and on
+# 2026-11-25 and 2026-11-26 every threads-publish cron from 18:45 through 21:32
+# Taipei was dropped. Evening slots therefore have several off-peak crons.
+# Avoid :00 and :30, when GitHub is most congested. Duplicate checks in
+# publish.py make a re-run harmless.
+#
+#   Taipei     UTC      what
+#   07:10      23:10    check only (account, token age, quota, queue health)
+#   07:45      23:45    morning catch-up
+#   12:45      04:45    noon catch-up (Facebook 12:20 / Instagram 12:25 included)
+#   18:10      10:10    18:05 article promos, first evening chance
+#   18:25      10:25    18:05 redundancy
+#   18:45      10:45    evening catch-up
+#   18:50      10:50    18:05 redundancy (still inside the 90-minute window, which closes 19:35)
+#   19:20      11:20    18:05 redundancy, last cron inside the 90-minute window
+#   19:50      11:50    article-promo late window only (18:05 + 3h closes 21:05; a 20:00 post is not due yet)
+#   20:10      12:10    20:00 posts; an 18:05 article promo is still inside its 3h late window
+#   20:25      12:25    20:00 redundancy (off-peak; 20:10 and 20:40 were both dropped on 11/25 and 11/26)
+#   20:40      12:40    20:00 catch-up; 18:05 article promo still before 21:05
+#   21:05      13:05    20:00 redundancy, still before the 21:30 close
+#   21:32      13:32    bedtime post
+#   22:05      14:05    bedtime catch-up. Article promos are not sent after 22:30 Taipei.
 #
 # Kill switch: unless the repository variable THREADS_PUBLISH_ENABLED is "true",
 # every publish run is forced to dry-run (the one exception is a manual run of a
@@ -28,9 +42,16 @@ on:
     - cron: "10 23 * * *"
     - cron: "45 23 * * *"
     - cron: "45 4 * * *"
+    - cron: "10 10 * * *"
+    - cron: "25 10 * * *"
     - cron: "45 10 * * *"
+    - cron: "50 10 * * *"
+    - cron: "20 11 * * *"
+    - cron: "50 11 * * *"
     - cron: "10 12 * * *"
+    - cron: "25 12 * * *"
     - cron: "40 12 * * *"
+    - cron: "5 13 * * *"
     - cron: "32 13 * * *"
     - cron: "5 14 * * *"
   workflow_dispatch:

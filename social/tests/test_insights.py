@@ -29,6 +29,20 @@ QUEUE = [
         'status': 'approved',
         'text': '還沒發。',
     },
+    {
+        'id': '2026-11-25-facebook-gift',
+        'platform': 'facebook',
+        'published_id': '704258603022785_1592738539554712',
+        'status': 'published',
+        'text': '粉專貼文',
+    },
+    {
+        'id': '2026-11-25-instagram-gift',
+        'platform': 'instagram',
+        'published_id': '18094335407696547',
+        'status': 'published',
+        'text': 'IG 貼文',
+    },
 ]
 
 
@@ -37,10 +51,17 @@ class InsightsHelpers(unittest.TestCase):
         receipts = [
             {'entry_id': '2026-11-10-evening-owl-text-10', 'action': 'self_reply', 'media_id': '18090474101701825'},
             {'entry_id': 'legacy-post', 'action': 'post', 'media_id': '17882132640545881'},
+            {'entry_id': '2026-11-25-facebook-gift', 'action': 'post', 'platform': 'facebook',
+             'media_id': '704258603022785_1592738539554712'},
+            {'entry_id': '2026-11-25-instagram-gift', 'action': 'post', 'platform': 'instagram',
+             'media_id': '18094335407696547'},
+            {'entry_id': 'orphan-facebook', 'action': 'post', 'media_id': '111_222'},
         ]
         targets = I.published_targets(QUEUE, receipts)
         media_ids = [row['media_id'] for row in targets]
         self.assertEqual(media_ids, ['18083115968422426', '18090474101701825', '17882132640545881'])
+        self.assertNotIn('704258603022785_1592738539554712', media_ids)
+        self.assertNotIn('18094335407696547', media_ids)
         main = next(row for row in targets if row['media_id'] == '18083115968422426')
         self.assertEqual(main['queue_id'], '2026-11-10-evening-owl-text-10')
         self.assertEqual(main['topic_tag'], '育兒日常')
@@ -137,6 +158,31 @@ class InsightsRun(unittest.TestCase):
         with patch.object(I, 'Runner') as runner_cls:
             runner_cls.return_value.run.side_effect = I.MissingInsightsScope(I.INSIGHTS_SCOPE)
             self.assertEqual(I.main([]), 0)
+
+    def test_one_bad_id_is_skipped_and_the_rest_are_written(self):
+        calls = []
+
+        def api(method, path, params, token):
+            calls.append(path)
+            if path == '/me':
+                return {'id': '123', 'username': 'lovehibou'}
+            if path == '/debug_token':
+                return {'data': {'scopes': ['threads_basic', 'threads_manage_insights']}}
+            if path == '/17882132640545881/insights':
+                raise I.ApiError('GET', path, 400, json.dumps({
+                    'error': {'message': 'Unsupported get request', 'code': 100}
+                }))
+            if path.endswith('/insights'):
+                return {'data': [{'name': 'views', 'value': 4}]}
+            raise AssertionError(path)
+
+        I.Runner(root=self.root, env={'HIBOU_THREADS_TOKEN': 'fixture-token'}, api=api, clock=lambda: self.now, commit=False).run()
+        path = self.root / 'social' / 'metrics' / '2026-11-15.jsonl'
+        rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
+        self.assertEqual([row['media_id'] for row in rows], ['18083115968422426'])
+        self.assertFalse(any('704258603022785' in item for item in calls))
+        self.assertFalse(any(item.endswith('/18094335407696547/insights') for item in calls))
+        self.assertEqual(json.loads((self.root / 'social' / 'queue.json').read_text()), QUEUE)
 
     def test_token_is_not_present_in_api_error_text(self):
         err = I.ApiError('GET', '/me', 400, 'access_' + 'token=secret-token-value is bad')

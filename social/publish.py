@@ -20,7 +20,9 @@ reported, the 24-hour publishing quota must have room, and social/queue.json
 must pass validate.py.
 
 An entry can never go out twice:
-  1. only `approved` entries inside their time window are considered;
+  1. only `approved` entries inside their time window are considered
+     (article promos may run up to 3 hours late, never after 22:30 Taipei,
+     and not within 3 hours of another same-platform post);
   2. if one of the account's recent posts already starts with the same first
      line, the entry is recorded as published instead of being sent;
   3. the entry is set to `publishing` and that change is pushed to GitHub
@@ -67,6 +69,13 @@ WINDOWS = {
     'test': timedelta(hours=24),
 }
 BEDTIME_CUTOFF = (23, 30)
+# Article promos (source "article:...") may leave up to 3 hours late so a dropped
+# evening cron can be caught by a later one. Nothing goes out after 22:30 Taipei.
+# The extra time never shortens the slot window above. A promo already past its
+# slot window waits if another same-platform post is within POST_GAP.
+ARTICLE_LATE = timedelta(hours=3)
+ARTICLE_HARD_STOP = (22, 30)
+POST_GAP = timedelta(hours=3)
 BOT_NAME, BOT_EMAIL = 'hibou-social bot', 'noreply@ihibou.com'
 ENTRY_ID_RE = re.compile(r'^[A-Za-z0-9._-]+$')
 
@@ -139,11 +148,31 @@ def parse_threads_time(value):
         return None
 
 
-def window(entry):
+def article_promo(entry):
+    """True for queue rows produced from a live article (any platform)."""
+    source = entry.get('source') if isinstance(entry, dict) else None
+    return isinstance(source, str) and source.startswith('article:')
+
+
+def slot_deadline(entry):
+    """The original slot window, before the article-promo late extension."""
     start = V.parse_publish_at(entry['publish_at'])
     end = start + WINDOWS[entry['slot']]
     if entry['slot'] == 'bedtime':
-        end = min(end, start.replace(hour=BEDTIME_CUTOFF[0], minute=BEDTIME_CUTOFF[1], second=0))
+        end = min(end, start.replace(hour=BEDTIME_CUTOFF[0], minute=BEDTIME_CUTOFF[1], second=0, microsecond=0))
+    return start, end
+
+
+def window(entry):
+    start, end = slot_deadline(entry)
+    if article_promo(entry):
+        hard = start.replace(hour=ARTICLE_HARD_STOP[0], minute=ARTICLE_HARD_STOP[1], second=0, microsecond=0)
+        late = start + ARTICLE_LATE
+        # A post scheduled at or after 22:30 does not get a longer window.
+        if hard > start:
+            late = min(late, hard)
+        if late > end:
+            end = late
     return start, end
 
 
@@ -375,6 +404,32 @@ class Runner:
             raise PostError(f'Threads returned no media id for container {container}')
         return container, media_id
 
+    def late_promo_blocked(self, entry, now):
+        """An article promo past its slot window must stay at least 3 hours from other posts.
+
+        Inside the original slot window the schedule is unchanged. Past that, and
+        still before the 22:30 cap, skip this run instead of stacking two posts.
+        The entry stays approved so a later cron can send it once the gap is clear
+        and the late window is still open.
+        """
+        if not article_promo(entry):
+            return False
+        _start, normal_end = slot_deadline(entry)
+        if now <= normal_end:
+            return False
+        platform = V.entry_platform(entry)
+        for other in self.store.queue:
+            if not isinstance(other, dict) or other.get('id') == entry.get('id'):
+                continue
+            if V.entry_platform(other) != platform or other.get('slot') == 'test':
+                continue
+            if other.get('status') not in ('approved', 'publishing', 'published', 'posted_by_chrome'):
+                continue
+            anchor = V.parse_publish_at(other.get('published_at')) or V.parse_publish_at(other.get('publish_at'))
+            if anchor and abs(anchor - now) < POST_GAP:
+                return True
+        return False
+
     def describe(self, entry):
         self.say(f"dry-run：{entry['id']} 會建立 {entry['media_type']} 貼文「{' / '.join(entry['text'][:40].splitlines())}」"
                  f"，主題 {entry.get('topic_tag') or '（無）'}")
@@ -514,6 +569,10 @@ class Runner:
                 if not dry_run:
                     self.store.update(entry['id'], {'status': 'skipped', 'note': note, 'run_id': self.run_id},
                                       self.receipt(entry, 'skip', note=note), f"chore(threads): skip {entry['id']} (missed window)")
+                continue
+
+            if self.late_promo_blocked(entry, now):
+                self.say(f"{entry['id']} 已過原本的 90 分鐘，而且距同一平台另一則不足 3 小時，這次不發", 'warning')
                 continue
 
             if entry['slot'] != 'test':
@@ -759,6 +818,9 @@ class Runner:
                 self.store.update(entry['id'], {'status': 'skipped', 'note': note, 'run_id': self.run_id},
                                   self._meta_receipt(entry, 'skip', note=note),
                                   f"chore({platform}): skip {entry['id']} (missed window)")
+            return
+        if self.late_promo_blocked(entry, now):
+            self.say(f"{entry['id']} 已過原本的 90 分鐘，而且距同一平台另一則不足 3 小時，這次不發", 'warning')
             return
         if dry:
             self.describe_meta(entry)
