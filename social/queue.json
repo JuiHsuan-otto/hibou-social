@@ -2058,10 +2058,10 @@
     "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
   },
   {
-    "id": "2026-11-30-facebook-parenting-windshield-usage",
+    "id": "2026-12-21-facebook-parenting-windshield-usage",
     "platform": "facebook",
     "slot": "noon",
-    "publish_at": "2026-11-30T12:20:00+08:00",
+    "publish_at": "2026-12-21T12:20:00+08:00",
     "status": "approved",
     "text": "冬天推車、揹巾出門，寶寶我最罩怎麼裝最順？\n從固定位置、下擺分腿按釦，到進室內要不要拿掉、髒了怎麼洗，這篇都配了圖。",
     "image_url": null,
@@ -2077,13 +2077,13 @@
     "media_type": "LINK",
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
-    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
+    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
-    "id": "2026-11-30-instagram-parenting-windshield-usage",
+    "id": "2026-12-21-instagram-parenting-windshield-usage",
     "platform": "instagram",
     "slot": "noon",
-    "publish_at": "2026-11-30T12:25:00+08:00",
+    "publish_at": "2026-12-21T12:25:00+08:00",
     "status": "approved",
     "text": "寶寶我最罩不只推車能用，揹巾也可以。\n怎麼固定、分腿按釦怎麼扣、髒了怎麼洗，圖解放在官網。\n連結放在簡介。",
     "image_url": "https://www.ihibou.com/images/content-relay-w02/prod-og.png",
@@ -2099,7 +2099,7 @@
     "media_type": "IMAGE",
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
-    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
+    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
     "id": "2026-12-02-threads-family-stories-baby-gifts",
@@ -2124,10 +2124,10 @@
     "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
   },
   {
-    "id": "2026-12-02-facebook-family-stories-baby-gifts",
+    "id": "2026-12-23-facebook-family-stories-baby-gifts",
     "platform": "facebook",
     "slot": "noon",
-    "publish_at": "2026-12-02T12:20:00+08:00",
+    "publish_at": "2026-12-23T12:20:00+08:00",
     "status": "approved",
     "text": "真實家庭的新生禮開箱：羅好吃的禮盒，加上 Miss Lulu、泡芙媽的單品試用。\n小衣服、圍兜、布巾各在什麼時候派上用場，看她們怎麼用最清楚。",
     "image_url": null,
@@ -2143,13 +2143,13 @@
     "media_type": "LINK",
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
-    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
+    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
-    "id": "2026-12-02-instagram-family-stories-baby-gifts",
+    "id": "2026-12-23-instagram-family-stories-baby-gifts",
     "platform": "instagram",
     "slot": "noon",
-    "publish_at": "2026-12-02T12:25:00+08:00",
+    "publish_at": "2026-12-23T12:25:00+08:00",
     "status": "approved",
     "text": "想知道新生禮拆開來長怎樣？\n三位媽媽的開箱和試用心得，小衣服、圍兜、布巾怎麼用都寫了。\n連結放在簡介。",
     "image_url": "https://www.ihibou.com/products/images/hibou-giftbox/legacy-giftbox-window.jpg",
@@ -2165,7 +2165,7 @@
     "media_type": "IMAGE",
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
-    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
+    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
     "id": "2026-12-07-threads-parenting-6gauze-guide",
@@ -2190,10 +2190,10 @@
     "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
   },
   {
-    "id": "2026-12-07-facebook-parenting-6gauze-guide",
+    "id": "2026-12-28-facebook-parenting-6gauze-guide",
     "platform": "facebook",
     "slot": "noon",
-    "publish_at": "2026-12-07T12:20:00+08:00",
+    "publish_at": "2026-12-28T12:20:00+08:00",
     "status": "approved",
     "text": "六重紗用品那麼多，不知道先買哪一個？\n先分清楚擦拭、胸前替換、揹巾、保暖四種用途，再看尺寸和洗法，這篇有實拍比較。",
     "image_url": null,
@@ -2209,13 +2209,13 @@
     "media_type": "LINK",
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
-    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
+    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
-    "id": "2026-12-07-instagram-parenting-6gauze-guide",
+    "id": "2026-12-28-instagram-parenting-6gauze-guide",
     "platform": "instagram",
     "slot": "noon",
-    "publish_at": "2026-12-07T12:25:00+08:00",
+    "publish_at": "2026-12-28T12:25:00+08:00",
     "status": "approved",
     "text": "手帕、口水巾、拍嗝巾、防踢被，都是六重紗，用途差很多。\n先挑家裡最常拿的那件，尺寸和洗法放在官網。\n連結放在簡介。",
     "image_url": "https://www.ihibou.com/products/images/carrier_main.jpg",
@@ -2231,7 +2231,7 @@
     "media_type": "IMAGE",
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
-    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
+    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
     "id": "2026-12-09-threads-parenting-bib-guide",
@@ -2256,10 +2256,10 @@
     "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
   },
   {
-    "id": "2026-12-09-facebook-parenting-bib-guide",
+    "id": "2026-12-30-facebook-parenting-bib-guide",
     "platform": "facebook",
     "slot": "noon",
-    "publish_at": "2026-12-09T12:20:00+08:00",
+    "publish_at": "2026-12-30T12:20:00+08:00",
     "status": "approved",
     "text": "長牙期一天換好幾條口水巾，很正常。\n胸前要蓋多大、脖子怎麼扣、要準備幾條替換，用日常照片比一比三角、圓形和 360° 版型。",
     "image_url": null,
@@ -2275,13 +2275,13 @@
     "media_type": "LINK",
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
-    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
+    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
-    "id": "2026-12-09-instagram-parenting-bib-guide",
+    "id": "2026-12-30-instagram-parenting-bib-guide",
     "platform": "instagram",
     "slot": "noon",
-    "publish_at": "2026-12-09T12:25:00+08:00",
+    "publish_at": "2026-12-30T12:25:00+08:00",
     "status": "approved",
     "text": "三角、圓形、360°，口水巾版型差在哪？\n扣起來的樣子和替換量怎麼算，用照片比給你看。\n連結放在簡介。",
     "image_url": "https://www.ihibou.com/images/parenting/scarf/01-9900c0cb.jpg",
@@ -2297,7 +2297,7 @@
     "media_type": "IMAGE",
     "approved_by": "claude",
     "approved_at": "2026-11-24T09:30:00+08:00",
-    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖"
+    "note": "Otto 2026-11-24「不需要模擬了，直接上線作業」；Claude 改寫文案並看過圖 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
     "id": "2026-12-14-threads-parenting-outing-bag-checklist",
@@ -2455,10 +2455,10 @@
     "run_id": "45839416575"
   },
   {
-    "id": "2026-12-21-facebook-baby-winter-sleep-warmth",
+    "id": "2026-11-30-facebook-baby-winter-sleep-warmth",
     "platform": "facebook",
     "slot": "noon",
-    "publish_at": "2026-12-21T12:20:00+08:00",
+    "publish_at": "2026-11-30T12:20:00+08:00",
     "status": "approved",
     "text": "今天冬至，晚上大概又是冷冷的一夜。\n幫寶寶保暖，不一定要多蓋一條被子。房間怎麼留、身上加哪一層、半夜起來摸哪裡判斷冷熱，我們整理成一篇，給今晚輪夜班的爸媽睡前看一下。",
     "image_url": null,
@@ -2474,13 +2474,13 @@
     "media_type": "LINK",
     "approved_by": "grok-bot",
     "approved_at": "2026-11-24T11:10:00+08:00",
-    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段）"
+    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段） 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。 Facebook 開頭仍是「今天冬至」。"
   },
   {
-    "id": "2026-12-21-instagram-baby-winter-sleep-warmth",
+    "id": "2026-11-30-instagram-baby-winter-sleep-warmth",
     "platform": "instagram",
     "slot": "noon",
-    "publish_at": "2026-12-21T12:25:00+08:00",
+    "publish_at": "2026-11-30T12:25:00+08:00",
     "status": "approved",
     "text": "冬天夜裡，嬰兒床留得空空的就好。\n想幫寶寶加暖，就加在身上，一件薄的或一件穿著式睡袋。半夜摸摸後頸，濕了就減一層。\n完整的整理，連結放在簡介。",
     "image_url": "https://www.ihibou.com/images/content-relay-w04/sleep-hero.jpg",
@@ -2496,7 +2496,7 @@
     "media_type": "IMAGE",
     "approved_by": "grok-bot",
     "approved_at": "2026-11-24T11:10:00+08:00",
-    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段）"
+    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段） 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
     "id": "2026-11-28-threads-postpartum-confinement-prep",
@@ -2521,10 +2521,10 @@
     "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段）"
   },
   {
-    "id": "2026-12-23-facebook-postpartum-confinement-prep",
+    "id": "2026-12-02-facebook-postpartum-confinement-prep",
     "platform": "facebook",
     "slot": "noon",
-    "publish_at": "2026-12-23T12:20:00+08:00",
+    "publish_at": "2026-12-02T12:20:00+08:00",
     "status": "approved",
     "text": "坐月子這一個月，家裡每天都在洗、在晾、在等乾。\n月子中心要自備哪些、在家紗布巾怎麼輪、夜裡誰起來、朋友什麼時候來看比較剛好，這篇一次整理好。媽媽身體的部分，還是交給產科醫師和護理師最準。",
     "image_url": null,
@@ -2540,13 +2540,13 @@
     "media_type": "LINK",
     "approved_by": "grok-bot",
     "approved_at": "2026-11-24T11:10:00+08:00",
-    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段）"
+    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段） 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
-    "id": "2026-12-23-instagram-postpartum-confinement-prep",
+    "id": "2026-12-02-instagram-postpartum-confinement-prep",
     "platform": "instagram",
     "slot": "noon",
-    "publish_at": "2026-12-23T12:25:00+08:00",
+    "publish_at": "2026-12-02T12:25:00+08:00",
     "status": "approved",
     "text": "月子期間最常聽到的一句：「那條紗布巾乾了沒？」\n一條在用、一條在洗、一條在晾，冬天再多留幾條，就不會手忙腳亂。朋友來訪約白天、時間短短的，媽媽和寶寶都比較好休息。\n連結放在簡介。",
     "image_url": "https://www.ihibou.com/images/content-relay-w09/home-hero.jpg",
@@ -2562,7 +2562,7 @@
     "media_type": "IMAGE",
     "approved_by": "grok-bot",
     "approved_at": "2026-11-24T11:10:00+08:00",
-    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段）"
+    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫，Threads 提早排在 18:05（避開 12:00/20:00 與固定時段） 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
     "id": "2026-11-30-threads-baby-shou-xian-guide",
@@ -2587,10 +2587,10 @@
     "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 改排 11/30 18:05：11/27 與 11/29 的 20:00 貼文距 18:05 不足 3 小時，11/28 18:05 已有文章。FB/IG 接在 12/23 之後的下一個週一 12/28（週五留給 Business Suite）。圖用官網既有商品照 bib_round_outdoor.jpg"
   },
   {
-    "id": "2026-12-28-facebook-baby-shou-xian-guide",
+    "id": "2026-12-07-facebook-baby-shou-xian-guide",
     "platform": "facebook",
     "slot": "noon",
-    "publish_at": "2026-12-28T12:20:00+08:00",
+    "publish_at": "2026-12-07T12:20:00+08:00",
     "status": "approved",
     "text": "收涎禮若只帶一件，圍兜最對得上：當天圍在胸前，之後口水多了也能換。有送禮日的話，先用 LINE 問我們。\n餅乾靠近嘴邊輕擦就移開，別讓小娃咬。長輩不在身邊，開視訊一起說吉祥話，或爸媽兩個人做完，都算數。",
     "image_url": null,
@@ -2606,13 +2606,13 @@
     "media_type": "LINK",
     "approved_by": "grok-bot",
     "approved_at": "2026-11-25T11:20:00+08:00",
-    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 改排 11/30 18:05：11/27 與 11/29 的 20:00 貼文距 18:05 不足 3 小時，11/28 18:05 已有文章。FB/IG 接在 12/23 之後的下一個週一 12/28（週五留給 Business Suite）。圖用官網既有商品照 bib_round_outdoor.jpg"
+    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 改排 11/30 18:05：11/27 與 11/29 的 20:00 貼文距 18:05 不足 3 小時，11/28 18:05 已有文章。FB/IG 接在 12/23 之後的下一個週一 12/28（週五留給 Business Suite）。圖用官網既有商品照 bib_round_outdoor.jpg 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
-    "id": "2026-12-28-instagram-baby-shou-xian-guide",
+    "id": "2026-12-07-instagram-baby-shou-xian-guide",
     "platform": "instagram",
     "slot": "noon",
-    "publish_at": "2026-12-28T12:25:00+08:00",
+    "publish_at": "2026-12-07T12:25:00+08:00",
     "status": "approved",
     "text": "討吉利的時候，家裡常說「收涎收乾乾，明年招小弟」，也有人說「收涎收乾乾，長大不流涎」。哪句順口就說哪句。\n硬餅乾只是拿來點嘴，不是給四個月寶寶吃的。圍兜扣好看看領口，布別蓋到鼻子，要睡了就拿下來。\n連結放在簡介。",
     "image_url": "https://www.ihibou.com/products/images/bib_round_outdoor.jpg",
@@ -2628,7 +2628,7 @@
     "media_type": "IMAGE",
     "approved_by": "grok-bot",
     "approved_at": "2026-11-25T11:20:00+08:00",
-    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 改排 11/30 18:05：11/27 與 11/29 的 20:00 貼文距 18:05 不足 3 小時，11/28 18:05 已有文章。FB/IG 接在 12/23 之後的下一個週一 12/28（週五留給 Business Suite）。圖用官網既有商品照 bib_round_outdoor.jpg"
+    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 改排 11/30 18:05：11/27 與 11/29 的 20:00 貼文距 18:05 不足 3 小時，11/28 18:05 已有文章。FB/IG 接在 12/23 之後的下一個週一 12/28（週五留給 Business Suite）。圖用官網既有商品照 bib_round_outdoor.jpg 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
     "id": "2026-12-02-threads-baby-zhuazhou-first-birthday",
@@ -2653,10 +2653,10 @@
     "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 排 12/02 18:05（11/26、11/28、11/30 的 18:05 已有文章；其間晚上 20:00 貼文距 18:05 不足 3 小時）。FB/IG 接在 12/28 之後的下一個週三 12/30（週五留給 Business Suite）。圖用官網既有商品照 hibou-giftbox/4710374294634.jpg"
   },
   {
-    "id": "2026-12-30-facebook-baby-zhuazhou-first-birthday",
+    "id": "2026-12-09-facebook-baby-zhuazhou-first-birthday",
     "platform": "facebook",
     "slot": "noon",
-    "publish_at": "2026-12-30T12:20:00+08:00",
+    "publish_at": "2026-12-09T12:20:00+08:00",
     "status": "approved",
     "text": "抓周不一定要辦得很隆重，在家鋪一塊墊子、放幾件寶寶抓得住的東西，大人陪在旁邊就很好看了。有送禮日的話，先用 LINE 問我們。\n週歲禮不一定要大包小包，圍兜和擦嘴的紗布巾，一歲還常常用得到。想先看怎麼準備，文章裡寫得蠻清楚。",
     "image_url": null,
@@ -2672,13 +2672,13 @@
     "media_type": "LINK",
     "approved_by": "grok-bot",
     "approved_at": "2026-11-26T11:20:00+08:00",
-    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 排 12/02 18:05（11/26、11/28、11/30 的 18:05 已有文章；其間晚上 20:00 貼文距 18:05 不足 3 小時）。FB/IG 接在 12/28 之後的下一個週三 12/30（週五留給 Business Suite）。圖用官網既有商品照 hibou-giftbox/4710374294634.jpg"
+    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 排 12/02 18:05（11/26、11/28、11/30 的 18:05 已有文章；其間晚上 20:00 貼文距 18:05 不足 3 小時）。FB/IG 接在 12/28 之後的下一個週三 12/30（週五留給 Business Suite）。圖用官網既有商品照 hibou-giftbox/4710374294634.jpg 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
   },
   {
-    "id": "2026-12-30-instagram-baby-zhuazhou-first-birthday",
+    "id": "2026-12-09-instagram-baby-zhuazhou-first-birthday",
     "platform": "instagram",
     "slot": "noon",
-    "publish_at": "2026-12-30T12:25:00+08:00",
+    "publish_at": "2026-12-09T12:25:00+08:00",
     "status": "approved",
     "text": "抓周那天，家裡會擺書、球、鍋鏟這些，每家放的不一樣，沒有一定要照的名單。寶寶伸出手拿到哪樣，大家笑一笑就好，那是討吉利的說法。\n小零件跟尖的東西不要放上去，大人全程在旁邊。玩累了、想爬走，就收。連結放在簡介。",
     "image_url": "https://www.ihibou.com/products/images/hibou-giftbox/4710374294634.jpg",
@@ -2694,6 +2694,47 @@
     "media_type": "IMAGE",
     "approved_by": "grok-bot",
     "approved_at": "2026-11-26T11:20:00+08:00",
-    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 排 12/02 18:05（11/26、11/28、11/30 的 18:05 已有文章；其間晚上 20:00 貼文距 18:05 不足 3 小時）。FB/IG 接在 12/28 之後的下一個週三 12/30（週五留給 Business Suite）。圖用官網既有商品照 hibou-giftbox/4710374294634.jpg"
+    "note": "Otto 授權 Grok Bot 每日成長任務自動排低風險文章導流；文案依平台分開改寫。Threads 排 12/02 18:05（11/26、11/28、11/30 的 18:05 已有文章；其間晚上 20:00 貼文距 18:05 不足 3 小時）。FB/IG 接在 12/28 之後的下一個週三 12/30（週五留給 Business Suite）。圖用官網既有商品照 hibou-giftbox/4710374294634.jpg 2026-11-27 與既有 evergreen 對調 12:20/12:25 日期，文案不變。"
+  },
+  {
+    "id": "2026-12-04-threads-baby-winter-sleep-warmth",
+    "platform": "threads",
+    "slot": "evening",
+    "publish_at": "2026-12-04T18:05:00+08:00",
+    "status": "approved",
+    "text": "冷氣團一來，半夜最常做的事，就是走到床邊想再幫寶寶蓋一條。\n先別急，摸一下後頸。溫溫的就剛好，濕濕的反而是穿太多了。\n真的要加，就加在身上：多一件薄的，或換一件穿著式睡袋，床上照樣空空的。\nhttps://www.ihibou.com/articles/baby-winter-sleep-warmth?utm_source=threads&utm_medium=organic_social&utm_campaign=threads_articles_20261124",
+    "image_url": null,
+    "image_sha256": null,
+    "image_urls": null,
+    "video_url": null,
+    "link": "https://www.ihibou.com/articles/baby-winter-sleep-warmth",
+    "bio_link": null,
+    "topic_tag": "育兒日常",
+    "self_reply": null,
+    "pin_after_post": false,
+    "source": "article:/articles/baby-winter-sleep-warmth",
+    "media_type": "TEXT",
+    "approved_by": "grok-bot",
+    "approved_at": "2026-11-24T11:10:00+08:00",
+    "note": "重排 2026-11-26 錯過的文章導流，文案相同。11/28 18:05 已有坐月子；11/29、12/01、12/03 的 20:00 距 18:05 不足 3 小時；11/30 與 12/02 已滿 3 則。改 12/04 18:05。"
+  },
+  {
+    "id": "2026-12-06-threads-evening-bib-round",
+    "slot": "evening",
+    "publish_at": "2026-12-06T20:00:00+08:00",
+    "media_type": "TEXT",
+    "text": "衣領一下就濕了，外出包再放一條乾淨的圍兜。\n６重紗圓形圍兜用按扣圍在胸前，下擺是一片圓弧；沾濕時就能替換，衣服濕了也要一起換。\n由大人協助扣合，扣好後看頸部鬆緊，布不要堆到口鼻旁；睡覺前取下。\n單入販售，現售花色請看選購區。\nhttps://www.ihibou.com/products/hibou-bib-round?utm_source=threads&utm_medium=organic_social&utm_campaign=threads_nov_20261116",
+    "image_url": null,
+    "image_sha256": null,
+    "video_url": null,
+    "link": null,
+    "topic_tag": "育兒日常",
+    "self_reply": null,
+    "pin_after_post": false,
+    "source": "threads_drafts_20261116_1129",
+    "status": "approved",
+    "approved_by": "otto",
+    "approved_at": "2026-11-13T22:34:00+08:00",
+    "note": "重排 2026-11-25 錯過的貼文，文案相同。12/04 18:05 已排冬季睡眠文，這則接 12/06 20:00，與當天 12:00 相隔 8 小時。"
   }
 ]

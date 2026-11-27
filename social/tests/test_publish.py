@@ -251,6 +251,72 @@ class PublishTests(Base):
         self.run_publish(api, now=datetime(2026, 10, 30, 14, 1, tzinfo=TAIPEI))
         self.assertEqual(self.queue()[0]['status'], 'skipped')
 
+    def article(self, **changes):
+        entry = self.entry(
+            id='2026-10-30-threads-warmth', slot='evening', publish_at='2026-10-30T18:05:00+08:00',
+            media_type='TEXT', image_url=None, image_sha256=None,
+            text='冷氣團來了，先摸後頸再決定要不要加一件。\nhttps://www.ihibou.com/articles/baby-winter-sleep-warmth',
+            link='https://www.ihibou.com/articles/baby-winter-sleep-warmth',
+            source='article:/articles/baby-winter-sleep-warmth',
+        )
+        entry.update(changes)
+        return entry
+
+    def test_article_promo_window_is_three_hours_and_stops_at_2230(self):
+        promo = {'slot': 'evening', 'publish_at': '2026-11-28T18:05:00+08:00',
+                 'source': 'article:/articles/baby-winter-sleep-warmth'}
+        self.assertEqual(P.window(promo)[1], datetime(2026, 11, 28, 21, 5, tzinfo=TAIPEI))
+        later = {'slot': 'evening', 'publish_at': '2026-11-28T20:00:00+08:00', 'source': 'article:/articles/x'}
+        self.assertEqual(P.window(later)[1], datetime(2026, 11, 28, 22, 30, tzinfo=TAIPEI))
+        plain = {'slot': 'evening', 'publish_at': '2026-11-28T20:00:00+08:00', 'source': 'threads_drafts'}
+        self.assertEqual(P.window(plain)[1], datetime(2026, 11, 28, 21, 30, tzinfo=TAIPEI))
+        morning = {'slot': 'morning', 'publish_at': '2026-11-30T07:05:00+08:00', 'source': 'article:/articles/x'}
+        self.assertEqual(P.window(morning)[1], datetime(2026, 11, 30, 10, 5, tzinfo=TAIPEI))
+
+    def test_article_promo_still_publishes_inside_the_late_window(self):
+        self.write_queue([self.article()])
+        api = FakeThreads()
+        when = datetime(2026, 10, 30, 20, 40, tzinfo=TAIPEI)
+        self.assertEqual(self.run_publish(api, now=when), 0)
+        self.assertEqual(self.queue()[0]['status'], 'published')
+        self.assertEqual(len(api.posts), 2)
+
+    def test_article_promo_after_2230_cap_is_skipped(self):
+        self.write_queue([self.article(
+            id='2026-10-30-threads-late', publish_at='2026-10-30T20:00:00+08:00',
+            source='article:/articles/baby-winter-sleep-warmth',
+        )])
+        api = FakeThreads()
+        self.assertEqual(self.run_publish(api, now=datetime(2026, 10, 30, 22, 31, tzinfo=TAIPEI)), 0)
+        self.assertEqual(api.posts, [])
+        self.assertEqual(self.queue()[0]['status'], 'skipped')
+
+    def test_late_article_promo_waits_when_another_post_is_within_three_hours(self):
+        other = self.entry(
+            id='2026-10-30-evening-other', slot='evening', publish_at='2026-10-30T20:00:00+08:00',
+            media_type='TEXT', image_url=None, image_sha256=None, link=None,
+            text='風大的日子，外套先披在大人身上。', source='threads_drafts_test',
+        )
+        self.write_queue([self.article(), other])
+        api = FakeThreads()
+        self.assertEqual(self.run_publish(api, now=datetime(2026, 10, 30, 20, 40, tzinfo=TAIPEI)), 0)
+        saved = {entry['id']: entry for entry in self.queue()}
+        self.assertEqual(saved['2026-10-30-threads-warmth']['status'], 'approved')
+        self.assertEqual(saved['2026-10-30-evening-other']['status'], 'published')
+        self.assertEqual(len(api.posts), 2)
+
+    def test_plain_evening_post_stays_on_the_90_minute_window(self):
+        entry = self.entry(
+            id='2026-10-30-evening', slot='evening', publish_at='2026-10-30T20:00:00+08:00',
+            media_type='TEXT', image_url=None, image_sha256=None, link=None,
+            text='風大的日子，外套先披在大人身上。', source='threads_drafts_test',
+        )
+        self.write_queue([entry])
+        api = FakeThreads()
+        self.run_publish(api, now=datetime(2026, 10, 30, 21, 40, tzinfo=TAIPEI))
+        self.assertEqual(api.posts, [])
+        self.assertEqual(self.queue()[0]['status'], 'skipped')
+
     def test_not_yet_due_is_left_alone(self):
         api = FakeThreads()
         self.assertEqual(self.run_publish(api, now=datetime(2026, 10, 30, 21, 0, tzinfo=TAIPEI)), 0)

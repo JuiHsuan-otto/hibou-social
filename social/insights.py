@@ -129,8 +129,27 @@ def extract_utm_campaign(*texts):
     return None
 
 
+def threads_entry(entry):
+    """Missing platform is Threads. Facebook and Instagram ids are not media ids."""
+    if not isinstance(entry, dict):
+        return False
+    platform = entry.get('platform')
+    return platform in (None, '', 'threads')
+
+
+def threads_media_id(media_id):
+    """Threads media ids are digits. A Facebook page post looks like 123_456."""
+    text = str(media_id or '')
+    return bool(ID_RE.fullmatch(text) and text.isdigit())
+
+
 def published_targets(queue, receipts):
-    """Unique media ids from queue published_id and receipt published_id/media_id."""
+    """Unique Threads media ids from queue published_id and receipt media ids.
+
+    Facebook and Instagram rows are skipped. One bad id must not be queried:
+    the Threads insights endpoint rejects a page-post id with 400 and used to
+    fail the whole daily file.
+    """
     by_media = {}
     queue_by_id = {}
     for entry in queue or []:
@@ -139,20 +158,26 @@ def published_targets(queue, receipts):
         entry_id = entry.get('id')
         if isinstance(entry_id, str):
             queue_by_id[entry_id] = entry
+        if not threads_entry(entry):
+            continue
         media_id = entry.get('published_id')
-        if media_id and ID_RE.fullmatch(str(media_id)):
+        if media_id and threads_media_id(media_id):
             by_media[str(media_id)] = entry
 
     for row in receipts or []:
         if not isinstance(row, dict):
             continue
+        if row.get('platform') in ('facebook', 'instagram'):
+            continue
+        entry = queue_by_id.get(row.get('entry_id')) or {}
+        if entry and not threads_entry(entry):
+            continue
         media_id = row.get('published_id') or row.get('media_id')
-        if not media_id or not ID_RE.fullmatch(str(media_id)):
+        if not threads_media_id(media_id):
             continue
         media_id = str(media_id)
         if media_id in by_media:
             continue
-        entry = queue_by_id.get(row.get('entry_id')) or {}
         by_media[media_id] = {
             'id': row.get('entry_id') or entry.get('id'),
             'topic_tag': entry.get('topic_tag'),
@@ -304,11 +329,20 @@ class Runner:
         rows = []
         try:
             for target in targets:
-                payload = self.call(
-                    'GET',
-                    f"/{target['media_id']}/insights",
-                    {'metric': METRICS},
-                )
+                try:
+                    payload = self.call(
+                        'GET',
+                        f"/{target['media_id']}/insights",
+                        {'metric': METRICS},
+                    )
+                except ApiError as exc:
+                    # One rejected id (a leftover page-post id, a deleted media
+                    # id) is a warning. The rest of the day's file still gets written.
+                    self.say(
+                        f"略過 {target['media_id']}（{target.get('queue_id') or '無佇列 id'}）：{exc}",
+                        'warning',
+                    )
+                    continue
                 rows.append({
                     'media_id': target['media_id'],
                     'queue_id': target['queue_id'],
@@ -320,6 +354,9 @@ class Runner:
         except MissingInsightsScope:
             self.write_nothing()
             raise
+        if targets and not rows:
+            self.say('每則 Insights 都失敗，不寫入空檔', 'warning')
+            return None
         path = self.metrics_path()
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in rows), encoding='utf-8')
