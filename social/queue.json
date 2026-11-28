@@ -819,10 +819,15 @@
     },
     "pin_after_post": false,
     "source": "threads_drafts_20261116_1129",
-    "status": "publishing",
+    "status": "published",
     "approved_by": "otto",
     "approved_at": "2026-11-13T22:34:00+08:00",
-    "run_id": "46109904643"
+    "run_id": "46109904643",
+    "container_id": "17968595265228916",
+    "published_id": "18364251895247173",
+    "permalink": "https://www.threads.com/@lovehibou/post/DgRcx-3FsaE",
+    "published_at": "2026-11-28T12:58:05+08:00",
+    "error": null
   },
   {
     "id": "2026-11-29-evening-journal-hub",
