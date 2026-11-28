@@ -819,9 +819,10 @@
     },
     "pin_after_post": false,
     "source": "threads_drafts_20261116_1129",
-    "status": "approved",
+    "status": "publishing",
     "approved_by": "otto",
-    "approved_at": "2026-11-13T22:34:00+08:00"
+    "approved_at": "2026-11-13T22:34:00+08:00",
+    "run_id": "46109904643"
   },
   {
     "id": "2026-11-29-evening-journal-hub",
